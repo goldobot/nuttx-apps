@@ -65,6 +65,10 @@ static int i2ccmd_unrecognized(FAR struct i2ctool_s *i2ctool, int argc, char **a
 
 struct i2ctool_s g_i2ctool;
 
+/* FIXME : DEBUG : HACK GOLDO ++ */
+int i2ccmd_fpga_write(FAR struct i2ctool_s *i2ctool, int argc, FAR char **argv);
+int i2ccmd_fpga_read(FAR struct i2ctool_s *i2ctool, int argc, FAR char **argv);
+/* FIXME : DEBUG : HACK GOLDO -- */
 static const struct cmdmap_s g_i2ccmds[] =
 {
   { "?",    i2ccmd_help, "Show help     ",  NULL },
@@ -74,6 +78,10 @@ static const struct cmdmap_s g_i2ccmds[] =
   { "help", i2ccmd_help, "Show help     ", NULL },
   { "set",  i2ccmd_set,  "Write register", "[OPTIONS] <value> [<repititions>]" },
   { "verf", i2ccmd_verf, "Verify access ", "[OPTIONS] [<value>] [<repititions>]" },
+/* FIXME : DEBUG : HACK GOLDO ++ */
+  { "fpgar",   i2ccmd_fpga_read, "FPGA read ", "<APB addr>" },
+  { "fpgaw",   i2ccmd_fpga_write, "FPGA write ", "<APB addr> <value>" },
+/* FIXME : DEBUG : HACK GOLDO -- */
   { NULL,   NULL,        NULL,             NULL }
 };
 
@@ -357,6 +365,9 @@ int i2c_main(int argc, char *argv[])
     {
       g_i2ctool.bus = CONFIG_I2CTOOL_MINBUS;
     }
+#if 1 /* FIXME : DEBUG */
+  g_i2ctool.bus = 1;
+#endif
 
   if (g_i2ctool.addr < CONFIG_I2CTOOL_MINADDR ||
       g_i2ctool.addr > CONFIG_I2CTOOL_MAXADDR)

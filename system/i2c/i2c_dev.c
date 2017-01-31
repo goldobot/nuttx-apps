@@ -152,7 +152,12 @@ int i2ccmd_dev(FAR struct i2ctool_s *i2ctool, int argc, char **argv)
 
           /* Set up data structures */
 
+/* FIXME : DEBUG : HACK GOLDO */
+#if 0
           regaddr          = 0;
+#else
+          regaddr          = 5;
+#endif
 
           msg[0].frequency = i2ctool->freq;
           msg[0].addr      = addr;
@@ -174,17 +179,26 @@ int i2ccmd_dev(FAR struct i2ctool_s *i2ctool, int argc, char **argv)
               msg[1].length = 2;
             }
 
+/* FIXME : DEBUG : HACK GOLDO ++ */
+#if 0
           if (i2ctool->start)
             {
               ret = i2cdev_transfer(fd, &msg[0], 1);
+/* FIXME : DEBUG : HACK GOLDO */
+//	      i2ctool_printf(i2ctool, "ret1 = %d", get_errno());
               if (ret == OK)
                 {
                   ret = i2cdev_transfer(fd, &msg[1], 1);
+/* FIXME : DEBUG : HACK GOLDO */
+//		  i2ctool_printf(i2ctool, "ret2 = %d", get_errno());
+
                 }
             }
           else
             {
               ret = i2cdev_transfer(fd, msg, 2);
+/* FIXME : DEBUG : HACK GOLDO */
+//	      i2ctool_printf(i2ctool, "ret3 = %d", get_errno());
             }
 
           if (ret == OK)
@@ -195,6 +209,25 @@ int i2ccmd_dev(FAR struct i2ctool_s *i2ctool, int argc, char **argv)
             {
               i2ctool_printf(i2ctool, "-- ");
             }
+#else
+          if (i2ctool->start)
+            {
+              ret = i2cdev_transfer(fd, &msg[0], 1);
+              if (ret == OK)
+                {
+		  i2ctool_printf(i2ctool, "%02x ", addr);
+                }
+	      else
+		{
+		  i2ctool_printf(i2ctool, "-- ");
+		}
+            }
+          else
+            {
+              i2ctool_printf(i2ctool, "-- ");
+            }
+#endif
+/* FIXME : DEBUG : HACK GOLDO -- */
         }
 
       i2ctool_printf(i2ctool, "\n");
