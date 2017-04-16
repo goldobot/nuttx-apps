@@ -1,0 +1,25 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config EXAMPLES_DEMO_APDS9960
+	bool "DEMO_APDS9960 C++ example"
+	default n
+	depends on HAVE_CXX
+	---help---
+		Enable the DEMO_APDS9960 C++ example
+
+if EXAMPLES_DEMO_APDS9960
+
+config EXAMPLES_DEMO_APDS9960_CXXINITIALIZE
+	bool "C++ Initialization"
+	default y
+	depends on HAVE_CXX && HAVE_CXXINITIALIZE
+	---help---
+		By default, if CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE are
+		defined, then this example will call the NuttX function to
+		initialize static C++ constructors.  This option may be disabled,
+		however, if that static initialization was performed elsewhere.
+
+endif

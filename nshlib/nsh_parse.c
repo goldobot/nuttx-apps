@@ -219,9 +219,9 @@ static const char g_nullstring[]      = "";
  */
 
 #if CONFIG_VERSION_MAJOR != 0 || CONFIG_VERSION_MINOR != 0
-const char g_nshgreeting[]       = "\nNuttShell (NSH) NuttX-" CONFIG_VERSION_STRING "\n";
+const char g_nshgreeting[]       = "\nNuttShell (NSH) NuttX-" CONFIG_VERSION_STRING "\n" "GOLDO_APPS_VERSION=" GOLDO_GIT_VERSION "\n";
 #else
-const char g_nshgreeting[]       = "\nNuttShell (NSH)\n";
+const char g_nshgreeting[]       = "\nNuttShell (NSH)\n" "GOLDO_APPS_VERSION=" GOLDO_GIT_VERSION "\n";
 #endif
 
 /* Fixed Message of the Day (MOTD) */

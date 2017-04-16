@@ -1,0 +1,22 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config EXAMPLES_GOLDORAK_GO_IOCTL
+	bool "Goldorak motor control example (using PWM driver IOCTL)"
+	default n
+	depends on PWM && NSH_BUILTIN_APPS
+	---help---
+		Enable the Goldorak motor control example (with PWM driver IOCTL) 
+
+if EXAMPLES_GOLDORAK_GO_IOCTL
+
+config EXAMPLES_GOLDORAK_GO_IOCTL_PWM_FREQUENCY
+	int "Default PWM frequency"
+	default 10000
+	---help---
+		The default PWM frequency.  Default: 10000 Hz
+
+
+endif

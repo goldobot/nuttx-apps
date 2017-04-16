@@ -1,0 +1,30 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config EXAMPLES_ROBOT_MASTER_SPI
+	bool "\"Robot master spi\" example"
+	default n
+	---help---
+		Enable the \"Robot master spi\" example
+
+if EXAMPLES_ROBOT_MASTER_SPI
+
+config EXAMPLES_ROBOT_MASTER_SPI_PROGNAME
+	string "Program name"
+	default "robot_master_spi"
+	depends on BUILD_KERNEL
+	---help---
+		This is the name of the program that will be use when the NSH ELF
+		program is installed.
+
+config EXAMPLES_ROBOT_MASTER_SPI_PRIORITY
+	int "Robot master spi task priority"
+	default 100
+
+config EXAMPLES_ROBOT_MASTER_SPI_STACKSIZE
+	int "Robot master spi stack size"
+	default 2048
+
+endif
