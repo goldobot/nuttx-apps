@@ -58,10 +58,12 @@ extern void goldo_maxon2_dir_p(void);
 extern void goldo_maxon2_dir_n(void);
 extern void goldo_maxon2_en(void);
 extern void goldo_maxon2_dis(void);
+extern void goldo_maxon2_speed(int32_t s);
 extern void goldo_maxon1_dir_p(void);
 extern void goldo_maxon1_dir_n(void);
 extern void goldo_maxon1_en(void);
 extern void goldo_maxon1_dis(void);
+extern void goldo_maxon1_speed(int32_t s);
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -181,7 +183,7 @@ static void parse_args(FAR struct goldorak_go_state_s *gs, int argc, FAR char **
         {
           case 'L':
             nargs = arg_decimal(&argv[index], &value);
-            if (value < -32768 || value > 32767)
+            if (value < -65535 || value > 65535)
               {
                 printf("Duty out of range: %ld\n", value);
                 exit(1);
@@ -193,7 +195,7 @@ static void parse_args(FAR struct goldorak_go_state_s *gs, int argc, FAR char **
 
           case 'R':
             nargs = arg_decimal(&argv[index], &value);
-            if (value < -32768 || value > 32767)
+            if (value < -65535 || value > 65535)
               {
                 printf("Duty out of range: %ld\n", value);
                 exit(1);
@@ -227,6 +229,72 @@ static void parse_args(FAR struct goldorak_go_state_s *gs, int argc, FAR char **
     }
 }
 
+int fdL, fdR;
+
+static int init_devices(void)
+{
+  struct pwm_info_s info;
+  int ret;
+
+  fdL = open("/dev/pwm1", O_RDONLY);
+  if (fdL < 0)
+    {
+      printf("init_devices: open /dev/pwm1 failed: %d\n", errno);
+      goto errout;
+    }
+
+  fdR = open("/dev/pwm0", O_RDONLY);
+  if (fdR < 0)
+    {
+      printf("init_devices: open /dev/pwm0 failed: %d\n", errno);
+      goto errout;
+    }
+
+  info.frequency = 10000;
+  info.duty = 0;
+
+  ret = ioctl(fdL,PWMIOC_SETCHARACTERISTICS,(unsigned long)((uintptr_t)&info));
+  if (ret < 0)
+    {
+      printf("init_devices: LEFT : ioctl(PWMIOC_SETCHARACTERISTICS) failed: %d\n", errno);
+      goto errout;
+    }
+
+  ret = ioctl(fdR,PWMIOC_SETCHARACTERISTICS,(unsigned long)((uintptr_t)&info));
+  if (ret < 0)
+    {
+      printf("init_devices: RIGHT : ioctl(PWMIOC_SETCHARACTERISTICS) failed: %d\n", errno);
+      goto errout;
+    }
+
+  ret = ioctl(fdL, PWMIOC_START, 0);
+  if (ret < 0)
+    {
+      printf("init_devices: LEFT : ioctl(PWMIOC_START) failed: %d\n", errno);
+      goto errout;
+    }
+
+  ret = ioctl(fdR, PWMIOC_START, 0);
+  if (ret < 0)
+    {
+      printf("init_devices: RIGHT : ioctl(PWMIOC_START) failed: %d\n", errno);
+      goto errout;
+    }
+
+  return OK;
+
+ errout:
+  return ERROR;
+}
+
+static void stop_devices(void)
+{
+  (void)ioctl(fdL, PWMIOC_STOP, 0);
+  (void)ioctl(fdR, PWMIOC_STOP, 0);
+  close(fdL);
+  close(fdR);
+}
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -254,24 +322,31 @@ int goldorak_go_main(int argc, char *argv[])
     }
 
   /* Parse the command line */
-
   parse_args(&g_goldorak_go_state, argc, argv);
+
+  /* Init PWM devices */
+  if (init_devices()!=OK)
+    return ERROR;
 
   /* Send speed command to the motors and START the test */
   printf("goldorak_go_main: enabling motors\n");
   goldo_maxon2_en();
   goldo_maxon1_en();
 
+  goldo_maxon2_speed(60000);
+  goldo_maxon1_speed(60000);
+  usleep(100000);
+
   /* LEFT command */
   speed_val = g_goldorak_go_state.speedL;
   // FIXME : TODO
-  //goldo_maxon2_speed(speed_val);
+  goldo_maxon2_speed(speed_val);
   printf("goldorak_go_main: LEFT speed: %d\n", speed_val);
 
   /* RIGHT command */
   speed_val = g_goldorak_go_state.speedR;
   // FIXME : TODO
-  //goldo_maxon1_speed(speed_val);
+  goldo_maxon1_speed(speed_val);
   printf("goldorak_go_main: RIGHT speed: %d\n", speed_val);
 
   /* Wait for the specified duration */
@@ -281,6 +356,9 @@ int goldorak_go_main(int argc, char *argv[])
   printf("goldorak_go_main: disabling motors\n");
   goldo_maxon2_dis();
   goldo_maxon1_dis();
+
+  /* Stop PWM devices */
+  (void)stop_devices();
 
   fflush(stdout);
   return OK;
