@@ -54,6 +54,8 @@
 
 #include "goldorak_go.h"
 
+#include "asserv_thomas.h"
+
 extern void goldo_maxon2_dir_p(void);
 extern void goldo_maxon2_dir_n(void);
 extern void goldo_maxon2_en(void);
@@ -310,7 +312,7 @@ int goldorak_go_main(int argc, char *argv[])
 #endif
 {
   int speed_val;
-
+goldo_asserv_hal_init();
   /* Initialize the state data */
 
   if (!g_goldorak_go_state.initialized)
