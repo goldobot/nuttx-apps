@@ -1,23 +1,46 @@
 #include "goldo_odometry.h"
+#include <nuttx/config.h>
+
+#include <sys/types.h>
+#include <sys/ioctl.h>
+
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <debug.h>
+#include <string.h>
+
+typedef unsigned int wint_t;
+#include <math.h>
+
+
+#include <nuttx/sensors/qencoder.h>
+
+
 
 goldo_odometry_state_s g_odometry_state;
 
 static goldo_odometry_config_s odometry_config;
 static int fd_qe_r,fd_qe_l;
+static float heading_factor = 0;
+static float update_frequency = 0;
 
 
 int goldo_odometry_init(void)
 {
 	/* Set initial values */
-	g_odometry_state-> elapsed_distance = 0;
-	g_odometry_state-> heading_change = 0;
-	g_odometry_state-> pos_x = 0;
-	g_odometry_state-> pos_y = 0;
-	g_odometry_state-> heading = 0;
-	g_odometry_state-> speed = 0;
-	g_odometry_state-> speed_x = 0;
-	g_odometry_state-> speed_y = 0;
-	g_odometry_state-> yaw_rate = 0;
+	g_odometry_state.elapsed_distance = 0;
+	g_odometry_state.heading_change = 0;
+	g_odometry_state.pos_x = 0;
+	g_odometry_state.pos_y = 0;
+	g_odometry_state.heading = 0;
+	g_odometry_state.speed = 0;
+	g_odometry_state.speed_x = 0;
+	g_odometry_state.speed_y = 0;
+	g_odometry_state.yaw_rate = 0;
 
 	/* Open encoder devices */
    fd_qe_r = open("/dev/qe0", O_RDONLY);
@@ -39,13 +62,12 @@ int goldo_odometry_init(void)
     int32_t qe_l;
     ioctl(fd_qe_r, QEIOC_POSITION, (unsigned long)((uintptr_t)&qe_r));
     ioctl(fd_qe_l, QEIOC_POSITION, (unsigned long)((uintptr_t)&qe_l));
-    g_odometry_state->counts_left = qe_l;
-    g_odometry_state->counts_right = qe_r;
+    g_odometry_state.counts_left = qe_l;
+    g_odometry_state.counts_right = qe_r;
     return OK;
 
     errout:
     	return ERROR;
-
 }
 
 int goldo_odometry_quit(void)
@@ -55,10 +77,12 @@ int goldo_odometry_quit(void)
   return OK;
 }
 
-i
+
 int goldo_odometry_set_config(goldo_odometry_config_s* config)
 {
 	odometry_config = *config;
+	heading_factor = 1.0f / odometry_config.wheel_spacing;
+	update_frequency = 1.0f / odometry_config.update_period;
 	return OK;
 }
 
@@ -69,23 +93,45 @@ int goldo_odometry_update(void)
 
 	ioctl(fd_qe_r, QEIOC_POSITION, (unsigned long)((uintptr_t)&qe_r));
     ioctl(fd_qe_l, QEIOC_POSITION, (unsigned long)((uintptr_t)&qe_l));
+    
 
-    robot_rc_val_1 = qe_r;
-    robot_rc_val_2 = qe_l * 0xffc / 0x1000;
+    g_odometry_state.counts_left = qe_l;
+    g_odometry_state.counts_right = qe_r;
 
-    delta_rc_val_1 = robot_rc_val_1 - robot_rc_val_1_old;
-    delta_rc_val_2 = robot_rc_val_2 - robot_rc_val_2_old;
+	/* todo: manage encoder wraparound */
+    int delta_cnt_l, delta_cnt_r;
+    delta_cnt_l = (int16_t)(qe_l - g_odometry_state.counts_left);
+    delta_cnt_r = (int16_t)(qe_r - g_odometry_state.counts_right);
+    float dx_l = delta_cnt_l * odometry_config.dist_per_count_left;
+    float dx_r = delta_cnt_r * odometry_config.dist_per_count_right;
+    float d_dist = (dx_l+dx_r)*0.5f;
+    float d_heading = (dx_r-dx_l) * heading_factor;
 
-    robot_rc_val_1_old = robot_rc_val_1;
-    robot_rc_val_2_old = robot_rc_val_2;
+    g_odometry_state.elapsed_distance += d_dist;
+    /* todo add config option for speed low pass filter frequency*/
+    g_odometry_state.speed = g_odometry_state.speed * 0.9f + d_dist * update_frequency * 0.1f;
+    g_odometry_state.heading_change += d_heading;
 
-    robot_speed_val_1 = delta_rc_val_1;
-    robot_speed_val_2 = delta_rc_val_2;
+    /* Update position */
+    float cos_h = cos(g_odometry_state.heading + d_heading*0.5f);
+    float sin_h = sin(g_odometry_state.heading + d_heading*0.5f);
+    g_odometry_state.pos_x += d_dist * cos_h;
+    g_odometry_state.pos_y += d_dist * sin_h;
+    g_odometry_state.speed_x += g_odometry_state.speed * cos_h;
+    g_odometry_state.speed_y += g_odometry_state.speed * sin_h;
+    g_odometry_state.heading += d_heading;
     return OK;
 }
 
 
 int goldo_odometry_set_position(float x, float y, float heading)
 {
+	g_odometry_state.pos_x = x;
+	g_odometry_state.pos_y = y;
+	g_odometry_state.heading = heading;
+	float cos_h = cos(g_odometry_state.heading);
+    float sin_h = sin(g_odometry_state.heading);
+    g_odometry_state.speed_x += g_odometry_state.speed * cos_h;
+    g_odometry_state.speed_y += g_odometry_state.speed * sin_h;
 	return OK;
 }

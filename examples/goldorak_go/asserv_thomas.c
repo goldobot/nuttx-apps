@@ -53,9 +53,8 @@ typedef struct
 
 goldo_asserv_s g_asserv;
 
+/* Real time feedback loop thread */
 static void *thread_asserv(void *arg);
-
-
 
 static int start_realtime_thread(goldo_asserv_s* asserv)
 {
@@ -119,7 +118,6 @@ static int start_realtime_thread(goldo_asserv_s* asserv)
 int goldo_asserv_init(void)
 {
   goldo_asserv_hal_init();
-  goldo_odometry_init();
   /* Initialize feedback loop values*/
 
   /* Start realtime thread and timer*/
@@ -127,12 +125,41 @@ int goldo_asserv_init(void)
     {
       return EXIT_FAILURE;
     }
+    return OK;
 }
 
 int goldo_asserv_quit(void)
 {
+  if(!g_asserv.initialized)
+  {
+    return OK;
+  }
+  int ret = 0;
+  bool err = false;
+  /* Stop the real time thread */
+  printf("Stop the realtime thread\n");
   g_asserv.rt_stop = true;
-  //pthread_join(g_asserv.rt_id);
+  ret = pthread_join(g_asserv.rt_id,NULL);
+  if (ret < 0) {
+    fprintf(stderr, "ERROR: Failed to stop the realtime thread: %d\n", errno);
+    err = true;
+  }
+ 
+  /* Stop the timer */
+  printf("Stop the timer\n");
+  ret = ioctl(g_asserv.tim_fd, TCIOC_STOP, 0);
+  if (ret < 0) {
+    fprintf(stderr, "ERROR: Failed to stop the timer: %d\n", errno);    
+    err = true;
+  }
+  close(g_asserv.tim_fd);
+  if(err)
+  {
+    return ERROR;
+  } else
+  {
+    return OK;
+  }  
 }
 
 /* update elapsed distance, speed, heading and yaw rate setpoints based on current trajectory*/
@@ -140,6 +167,8 @@ static int asserv_trajectory_generator(void)
 {
   return OK;
 }
+
+
 
 
 static void *thread_asserv(void *arg)
@@ -160,25 +189,7 @@ static void *thread_asserv(void *arg)
 
     goldo_odometry_update();
 
-   
-    /* 6 : GENERATEUR DE TRAJECTOIRE & ASSERV +++++++++++++++++++++++++++++*/
-    if ((asserv_state==ASSERV_STATE_MOVING)) {
-      /* generateur de trajectoire */
-      asserv_cmd_gen ();
-
-      /* asservissement */
-      int robot_motor_1,robot_motor_2;
-      asserv_cmd_corr_pd (robot_rc_val_1,    robot_rc_val_2, 
-                          robot_speed_val_1, robot_speed_val_2, 
-                          &robot_motor_1,    &robot_motor_2);
-      goldo_asserv_hal_set_motors_pwm(robot_motor_2,robot_motor_1);
-    }
-    /* fin GENERATEUR DE TRAJECTOIRE & ASSERV -----------------------------*/
-
-    /* 7 : affichage d'etat et traces de debug ++++++++++++++++++++++++++++*/
-    /* FIXME : TODO  */
-    /* fin affichage d'etat et traces de debug ----------------------------*/
-
+  
     /* 8 : fin d'iteration ++++++++++++++++++++++++++++++++++++++++++++++++*/
     tick_10ms++;
     /* --------------------------------------------------------------------*/

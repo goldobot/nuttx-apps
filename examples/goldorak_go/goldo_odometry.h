@@ -2,11 +2,12 @@
 #ifndef __GOLDO_ODOMETRY_H__
 #define __GOLDO_ODOMETRY_H__
 
-typedef struct
+typedef struct goldo_odometry_config_s
 {
   float dist_per_count_left;
   float dist_per_count_right;
-  float wheels_spacing;
+  float wheel_spacing;
+  float update_period;
 
 } goldo_odometry_config_s;
 
@@ -32,6 +33,7 @@ int goldo_odometry_quit(void);
 int goldo_odometry_set_config(goldo_odometry_config_s* config);
 int goldo_odometry_update(void);
 int goldo_odometry_set_position(float x, float y, float heading);
+int goldo_odometry_reset_elapsed(void);
 
 
 
