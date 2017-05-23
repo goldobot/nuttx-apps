@@ -1,7 +1,6 @@
 #include "asserv_thomas.h"
 #include "goldo_asserv_hal.h"
 #include "goldo_odometry.h"
-#include <nuttx/config.h>
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -9,12 +8,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <debug.h>
-#include <string.h>
-
+#include <semaphore.h>
+#include <pthread.h>
+#include <signal.h>
 #include <nuttx/init.h>
 #include <nuttx/arch.h>
+#include <string.h>
+
 
 
 /* Configuration */
@@ -68,7 +71,7 @@ int goldo_asserv_enable(bool en)
   {
     if(current_state == ASSERV_STATE_DISABLED)
     {
-      g_asserv->asserv_state = ASSERV_STATE_IDLE;
+      g_asserv.asserv_state = ASSERV_STATE_IDLE;
       goldo_asserv_hal_set_motors_enable(true, true);
       return OK;
     }    
@@ -86,9 +89,8 @@ static int asserv_trajectory_generator(void)
 {
   return OK;
 }
-
-int asserv_do_step(int dt_ms)
+goldo_asserv_do_step(int dt_ms)
 {
-
+  return OK;
 }
 

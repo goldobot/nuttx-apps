@@ -38,7 +38,7 @@
 # GOLDORAK_GO Example.
 
 ASRCS =
-CSRCS = asserv_thomas.c asserv_thomas_hal.c goldo_odometry.c
+CSRCS = asserv_thomas.c goldo_asserv_hal.c goldo_asserv_arch.c goldo_odometry.c
 MAINSRC = goldo_go_thomas.c
 
 CONFIG_XYZ_PROGNAME ?= goldorak_go$(EXEEXT)

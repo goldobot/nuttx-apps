@@ -113,8 +113,8 @@ int goldo_odometry_update(void)
     g_odometry_state.heading_change += d_heading;
 
     /* Update position */
-    float cos_h = cos(g_odometry_state.heading + d_heading*0.5f);
-    float sin_h = sin(g_odometry_state.heading + d_heading*0.5f);
+    float cos_h = 0;//cos(g_odometry_state.heading + d_heading*0.5f);
+    float sin_h = 0;//sin(g_odometry_state.heading + d_heading*0.5f);
     g_odometry_state.pos_x += d_dist * cos_h;
     g_odometry_state.pos_y += d_dist * sin_h;
     g_odometry_state.speed_x += g_odometry_state.speed * cos_h;
@@ -129,9 +129,9 @@ int goldo_odometry_set_position(float x, float y, float heading)
 	g_odometry_state.pos_x = x;
 	g_odometry_state.pos_y = y;
 	g_odometry_state.heading = heading;
-	float cos_h = cos(g_odometry_state.heading);
-    float sin_h = sin(g_odometry_state.heading);
-    g_odometry_state.speed_x += g_odometry_state.speed * cos_h;
-    g_odometry_state.speed_y += g_odometry_state.speed * sin_h;
+	float cos_h = 0;//cos(g_odometry_state.heading);
+  float sin_h = 0;//sin(g_odometry_state.heading);
+  g_odometry_state.speed_x += g_odometry_state.speed * cos_h;
+  g_odometry_state.speed_y += g_odometry_state.speed * sin_h;
 	return OK;
 }

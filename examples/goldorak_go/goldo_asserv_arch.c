@@ -1,6 +1,7 @@
 #include "asserv_thomas.h"
 
-#incl#include "goldo_asserv_hal.h"ude "goldo_odometry.h"
+#include "goldo_asserv_hal.h"
+#include "goldo_odometry.h"
 #include <nuttx/config.h>
 
 #include <sys/types.h>
@@ -17,7 +18,6 @@
 #include <nuttx/init.h>
 #include <nuttx/arch.h>
 
-#include <nuttx/drivers/pwm.h>
 #include <nuttx/timers/timer.h>
 
 /* Configuration */
@@ -39,7 +39,7 @@ goldo_asserv_stm32_s s_asserv_arch;
 
 /* Real time feedback loop thread */
 static void *thread_asserv(void *arg);
-static int start_realtime_thread(goldo_asserv_s* asserv);
+static int start_realtime_thread(goldo_asserv_stm32_s* asserv);
 
 
 

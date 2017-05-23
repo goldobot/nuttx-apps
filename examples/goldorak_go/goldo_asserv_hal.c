@@ -29,7 +29,7 @@ extern void goldo_maxon1_speed(int32_t s);
 
 typedef struct goldo_asserv_hal_s
 {
-  int initialized;
+  bool initialized;
   int fd_left;
   int fd_right;
   int pwm_left;
@@ -111,11 +111,11 @@ int goldo_asserv_hal_init(void)
   int ret = init_devices();
   if(ret == OK)
   {
-    g_asserv_hal.initialized = TRUE;
+    g_asserv_hal.initialized = true;
     return OK;
   } else
   {
-    g_asserv_hal.initialized = FALSE;
+    g_asserv_hal.initialized = false;
     return ERROR;
   }
 }
@@ -130,7 +130,7 @@ int goldo_asserv_hat_quit(void)
   return OK;
 }
 
-int goldo_asserv_hal_set_motors_enable(int left, int right)
+int goldo_asserv_hal_set_motors_enable(bool left, bool right)
 {
   if(!g_asserv_hal.initialized)
   {
