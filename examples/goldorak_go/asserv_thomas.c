@@ -40,7 +40,45 @@ typedef struct goldo_asserv_command_s
 } goldo_asserv_command_s;
 
 
+
+
+typedef struct goldo_asserv_command_fifo_s
+{
+  goldo_asserv_command_s commands[GOLDO_ASSERV_MAX_COMMANDS];
+  int index;
+  int end;
+
+} goldo_asserv_command_fifo_s;
+
 goldo_asserv_s g_asserv;
+goldo_asserv_command_fifo_s s_command_fifo;
+
+/*
+  Support functions
+*/
+
+goldo_asserv_command_s* command_fifo_current_command(void)
+{
+  if(s_command_fifo.index != s_command_fifo.end)
+  {
+    return s_command_fifo.commands + s_command_fifo.index;
+  } else
+  {
+    return NULL;
+  }
+}
+
+void command_fifo_advance(void)
+{
+  if(s_command_fifo.index != s_command_fifo.end)
+  {
+    s_command_fifo.index++;
+    if(s_command_fifo.index==GOLDO_ASSERV_MAX_COMMANDS)
+    {
+      s_command_fifo.index=0;
+    }
+  }
+}
 
 
 int goldo_asserv_init(void)
@@ -48,7 +86,9 @@ int goldo_asserv_init(void)
   goldo_asserv_hal_init();
   goldo_asserv_hal_set_motors_enable(false, false);
   goldo_asserv_hal_set_motors_pwm(0, 0);
-  g_asserv.asserv_state = ASSERV_STATE_DISABLED;
+  g_asserv.asserv_state = ASSERV_STATE_IDLE;
+  s_command_fifo.index = 0;
+  s_command_fifo.end = 0;
 
 
   /* Initialize feedback loop values*/
@@ -64,23 +104,14 @@ int goldo_asserv_quit(void)
   return goldo_asserv_arch_release();
 }
 
-int goldo_asserv_enable(bool en)
+int goldo_asserv_enable(void)
 {
-  ASSERV_STATE current_state = g_asserv.asserv_state;
-  if(en)
-  {
-    if(current_state == ASSERV_STATE_DISABLED)
+    if(g_asserv.asserv_state == ASSERV_STATE_DISABLED)
     {
-      g_asserv.asserv_state = ASSERV_STATE_IDLE;
-      goldo_asserv_hal_set_motors_enable(true, true);
+      g_asserv.asserv_state = ASSERV_STATE_IDLE;      
       return OK;
     }    
-    
-  } else
-  {
-    g_asserv.asserv_state = ASSERV_STATE_DISABLED;
-    goldo_asserv_hal_set_motors_enable(false, false);
-  }
+  
   return OK;  
 }
 
@@ -89,8 +120,13 @@ static int asserv_trajectory_generator(void)
 {
   return OK;
 }
-goldo_asserv_do_step(int dt_ms)
+int goldo_asserv_do_step(int dt_ms)
 {
+  g_asserv.elapsed_time_ms += dt_ms;
   return OK;
 }
 
+int goldo_asserv_straight_line(float distance, float speed, float accel, float deccel)
+{
+  return OK;
+}

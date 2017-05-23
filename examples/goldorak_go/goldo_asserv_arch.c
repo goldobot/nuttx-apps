@@ -1,5 +1,4 @@
 #include "asserv_thomas.h"
-
 #include "goldo_asserv_hal.h"
 #include "goldo_odometry.h"
 #include <nuttx/config.h>
@@ -45,7 +44,6 @@ static int start_realtime_thread(goldo_asserv_stm32_s* asserv);
 
 int goldo_asserv_arch_init(void)
 {
-  goldo_asserv_hal_init();
   /* Initialize feedback loop values*/
 
   /* Start realtime thread and timer*/
@@ -106,6 +104,59 @@ static void *thread_asserv(void *arg)
 
     goldo_odometry_update();
     goldo_asserv_do_step(CONFIG_RT_INTERVAL/1000);
+    switch(g_asserv.asserv_state)
+    {
+      case ASSERV_STATE_DISABLED:
+        {
+          goldo_asserv_hal_set_motors_enable(false,false);
+          goldo_asserv_hal_set_motors_pwm(0,0);
+        }
+        break;
+      case ASSERV_STATE_IDLE:
+        {
+          goldo_asserv_hal_set_motors_enable(true,true);
+          goldo_asserv_hal_set_motors_pwm(0,0);
+        }
+        break;
+      case ASSERV_STATE_MOVING:
+      
+        {
+          goldo_asserv_hal_set_motors_enable(true,true);
+          /*manage friction*/
+          int pwm_left = g_asserv.motor_pwm_left*(1 << 16);
+          int pwm_right =  g_asserv.motor_pwm_right*(1 << 16);
+          int pwm_limit = 40000;
+          int pwm_friction_treshold = 15000;
+
+          if(pwm_left > 0) pwm_left += pwm_friction_treshold;
+          if(pwm_left < 0) pwm_left += -pwm_friction_treshold;
+          if(pwm_left > pwm_limit) pwm_left = pwm_limit;
+          if(pwm_left < -pwm_limit) pwm_left = -pwm_limit;
+
+          if(pwm_right > 0) pwm_right += pwm_friction_treshold;
+          if(pwm_right < 0) pwm_right += -pwm_friction_treshold;
+          if(pwm_right > pwm_limit) pwm_right = pwm_limit;
+          if(pwm_right < -pwm_limit) pwm_right = -pwm_limit;
+
+          goldo_asserv_hal_set_motors_pwm(pwm_left,pwm_right);
+        }
+        break;
+      case ASSERV_STATE_ERROR:
+        {
+          goldo_asserv_hal_set_motors_enable(false,false);
+          goldo_asserv_hal_set_motors_pwm(0,0);
+        }
+        break;
+      case ASSERV_STATE_MATCH_FINISHED:
+        {
+          goldo_asserv_hal_set_motors_enable(false,false);
+          goldo_asserv_hal_set_motors_pwm(0,0);
+        }
+        break;
+
+
+    }
+   
     /* --------------------------------------------------------------------*/
   }
   /** fin BOUCLE PRINCIPALE ************************************************/

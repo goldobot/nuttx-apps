@@ -37,7 +37,7 @@ typedef struct goldo_asserv_hal_s
 
 } goldo_asserv_hal_s;
 
-goldo_asserv_hal_s g_asserv_hal;
+goldo_asserv_hal_s g_asserv_hal = {false,-1,-1,0,0};
 
 static int fdL, fdR;
 
@@ -46,7 +46,7 @@ static int init_devices(void)
 {
   struct pwm_info_s info;
   int ret;
-
+  printf("init goldo_asserv_hal devices\n");
   fdL = open("/dev/pwm1", O_RDONLY);
   if (fdL < 0)
     {
@@ -91,7 +91,7 @@ static int init_devices(void)
       printf("init_devices: RIGHT : ioctl(PWMIOC_START) failed: %d\n", errno);
       goto errout;
     }
-   
+   printf("enable left\n");
   return OK;
 
  errout:
@@ -108,9 +108,14 @@ static void stop_devices(void)
 
 int goldo_asserv_hal_init(void)
 {
+  if(g_asserv_hal.initialized)
+  {
+    return OK;
+  }
   int ret = init_devices();
   if(ret == OK)
   {
+    printf("finish init motors\n");
     g_asserv_hal.initialized = true;
     return OK;
   } else
@@ -120,7 +125,7 @@ int goldo_asserv_hal_init(void)
   }
 }
 
-int goldo_asserv_hat_quit(void)
+int goldo_asserv_hal_quit(void)
 {
   if(!g_asserv_hal.initialized)
   {
@@ -132,11 +137,6 @@ int goldo_asserv_hat_quit(void)
 
 int goldo_asserv_hal_set_motors_enable(bool left, bool right)
 {
-  if(!g_asserv_hal.initialized)
-  {
-    return ERROR;
-  }
-
   if(left)
   {
     goldo_maxon2_en();
@@ -158,5 +158,6 @@ int goldo_asserv_hal_set_motors_pwm(int left, int right)
 {
   goldo_maxon2_speed(left);
   goldo_maxon1_speed(right);
+  return OK;
 }
 

@@ -87,6 +87,7 @@ typedef unsigned int wint_t;
 
 #include "goldorak_go.h"
 #include "asserv_thomas.h"
+#include "goldo_asserv_hal.h"
 #include "goldo_odometry.h"
 
 #if 1 /* FIXME : DEBUG : HACK */
@@ -229,11 +230,14 @@ int goldorak_go_main(int argc, char *argv[])
   odometry_config.wheel_spacing = 100e-3f;
   odometry_config.update_period = 10e-3f;
   goldo_odometry_init();
-  goldo_odometry_set_config(&odometry_config);
+  goldo_odometry_set_config(&odometry_config); 
   goldo_asserv_init();
+  goldo_asserv_enable();
+  goldo_asserv_straight_line(0.5, 0.5, 0.5, 0.5);
+  g_asserv.motor_pwm_left=1.0f;
   while(1)
   {
-    printf("encoders: %i\n", g_odometry_state.counts_left);
+    printf("encoders: %i,%i, %i\n", g_asserv.elapsed_time_ms,g_odometry_state.counts_left,g_odometry_state.counts_right);
     usleep(100000);
   }
 

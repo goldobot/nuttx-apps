@@ -11,6 +11,7 @@ typedef enum ASSERV_STATE
  	ASSERV_STATE_IDLE,
 	ASSERV_STATE_MOVING,
  	ASSERV_STATE_ERROR,
+  ASSERV_STATE_MATCH_FINISHED
 } ASSERV_STATE;
 
 typedef struct goldo_asserv_s
@@ -26,10 +27,12 @@ typedef struct goldo_asserv_s
   float motor_pwm_right;
 }  goldo_asserv_s;
 
+extern goldo_asserv_s g_asserv;
+
 int goldo_asserv_init(void);
 int goldo_asserv_quit(void);
 
-int goldo_asserv_set_enable(bool en);
+int goldo_asserv_enable(void);
 
 int goldo_asserv_straight_line(float distance, float speed, float accel, float deccel);
 int goldo_aserv_rotation(float heading_change,float angular_accel, float angular_deccel);
@@ -40,6 +43,6 @@ int goldo_asserv_wait_finished(void);
 
 int goldo_asserv_arch_init(void);
 int goldo_asserv_arch_release(void);
-int asserv_do_step(int dt_ms);
+int goldo_asserv_do_step(int dt_ms);
 
 #endif /* __ASSERV_THOMAS_H__ */
