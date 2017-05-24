@@ -120,9 +120,58 @@ static int asserv_trajectory_generator(void)
 {
   return OK;
 }
+
+static void goldo_asserv_begin_command(goldo_asserv_command_s* c)
+{
+
+}
+
+/*return true if finished*/
+static bool goldo_asserv_update_command(goldo_asserv_command_s* c)
+{
+
+}
+
 int goldo_asserv_do_step(int dt_ms)
 {
   g_asserv.elapsed_time_ms += dt_ms;
+  goldo_asserv_command_s* current_command = command_fifo_current_command(void);
+  switch(g_asserv.asserv_state)
+  {
+    case ASSERV_STATE_DISABLED:
+      g_asserv.motor_pwm_left = 0;
+      g_asserv.motor_pwm_right = 0;
+      break;
+    case ASSERV_STATE_IDLE:
+      if(current_command != NULL)
+      {
+        goldo_asserv_begin_command(current_command);
+        g_asserv.asserv_state = ASSERV_MOVING;
+      }
+    /* fall trough*/
+    case ASSERV_STATE_MOVING:
+      if(goldo_asserv_update_command(current_command))
+      {
+        /* If current command finished, fetch next command
+           If next comand, continue moving, else switch back to idle.
+        */
+        ommand_fifo_advance();
+        current_command = command_fifo_current_command(void);
+        if(current_command != NULL)
+        {
+          goldo_asserv_begin_command(current_command);
+          g_asserv.asserv_state = ASSERV_MOVING;
+        } else
+        {
+          g_asserv.asserv_state = ASSERV_IDLE;
+        }
+      };
+      break;
+    default:
+      break;
+
+
+  }
   return OK;
 }
 
