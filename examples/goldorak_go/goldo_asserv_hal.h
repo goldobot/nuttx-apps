@@ -1,6 +1,6 @@
 #ifndef __GOLDO_ASSERV_HAL_H__
 #define __GOLDO_ASSERV_HAL_H__
-#include <stdbool.h>
+#include "goldo_config.h"
 
 int goldo_asserv_hal_init(void);
 int goldo_asserv_hat_quit(void);

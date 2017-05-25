@@ -1,8 +1,13 @@
+#define _USE_MATH_DEFINES
+#include "goldo_config.h"
+#include <math.h>
+
 #include "goldo_main_loop.h"
 #include "robot/goldo_robot.h"
 #include "goldo_asserv.h"
 #include "goldo_asserv_hal.h"
 #include "goldo_odometry.h"
+#include "goldo_match_timer.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +46,7 @@ int main_loop_homologation(void)
   goldo_match_timer_start(90);
   
   goldo_asserv_straight_line(0.5, 0.5, 0.5, 0.5);
+  goldo_asserv_rotation(M_PI * 0.5f, 0.5, 0.5, 0.5);
   goldo_asserv_wait_finished();
   /* STOP motors */
   return OK;

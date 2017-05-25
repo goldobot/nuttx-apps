@@ -2,6 +2,8 @@
 #define __GOLDO_CONFIG_H__
 #include <stdio.h>
 #include <stdbool.h>
+
+typedef unsigned int wint_t;
 //#define OK 0
 //#define ERROR 1
 

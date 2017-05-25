@@ -115,6 +115,7 @@ static void *thread_asserv(void *arg)
         }
         break;
       case ASSERV_STATE_IDLE:
+      case ASSERV_STATE_STOPPED:
         {
           goldo_asserv_hal_set_motors_enable(true,true);
           goldo_asserv_hal_set_motors_pwm(0,0);

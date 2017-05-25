@@ -1,6 +1,7 @@
 #include "goldo_asserv.h"
 #include "goldo_asserv_hal.h"
 #include "goldo_odometry.h"
+#include "goldo_polyline.h"
 
 //#include <sys/types.h>
 //#include <sys/ioctl.h>
@@ -34,7 +35,6 @@ typedef struct goldo_asserv_command_s
   float speed;
   float acceleration;
   float decceleration;
-  float heading_change;
 } goldo_asserv_command_s;
 
 
@@ -47,10 +47,21 @@ typedef struct goldo_asserv_command_fifo_s
 
 } goldo_asserv_command_fifo_s;
 
+typedef struct goldo_trapezoid_profile_s
+{
+  float distance;
+  float speed;
+  float acceleration;
+  float decceleration;
+  float t_accel;
+  float d_accel;
+  float t_deccel;
+  float d_deccel;
+} goldo_trapezoid_profile_s;
+
 goldo_asserv_s g_asserv;
 goldo_asserv_command_fifo_s s_command_fifo;
-static uint32_t s_match_timer_begin = 0;
-static uint32_t s_match_timer_end = -1;
+
 pthread_cond_t s_asserv_cond;/* Condition variable used to signal asserv events */
 pthread_mutex_t s_asserv_mutex;
 
@@ -64,25 +75,15 @@ static void command_fifo_advance(void);
 static goldo_asserv_command_s* command_fifo_begin_write(void);
 static int command_fifo_end_write(void);
 
-/*polynomial curve segment*/
-typedef struct goldo_asserv_segment_pt_s
-{
-  uint32_t t;
-  float d0                                                                                                                                         ;
-  float d1;
-  float d2;
-  float d3;
-  float h0;
-  float h1;
-  float h2;
-  float h3;
-} goldo_asserv_polyline_pt_s;
-
 /* Trajectory for current command is in the form of a polyline */
-static goldo_asserv_polyline_pt_s s_asserv_segments[16];
-static int s_asserv_segment_index=0;
-static int s_asserv_segment_end=0;
+static goldo_polyline_pt_s s_poly_distance_points[16];
+static goldo_polyline_pt_s s_poly_heading_points[16];
+static goldo_polyline_s s_poly_distance;
+static goldo_polyline_s s_poly_heading;
+static int s_poly_distance_index=0;
+static int s_poly_heading_index=0;
 
+/* PID filters */
 static goldo_pid_filter_s s_pid_distance;
 static goldo_pid_filter_s s_pid_heading;
 
@@ -107,12 +108,17 @@ int goldo_asserv_init(void)
   goldo_pid_filter_init(&s_pid_distance);
   goldo_pid_filter_init(&s_pid_heading);
   goldo_pid_filter_config_s pid_config_distance;
-  pid_config_distance.k_p = 50;
+  pid_config_distance.k_p = 10;
   pid_config_distance.k_d = 0;
   pid_config_distance.k_i = 0;
   pid_config_distance.ff_speed = 0;
   goldo_pid_filter_set_config(&s_pid_distance,&pid_config_distance);
 
+  /*Todo cleanup: init polyline pointers*/
+  s_poly_distance.points = s_poly_distance_points;
+  s_poly_distance.num_points = 0;
+  s_poly_heading.points = s_poly_heading_points;
+  s_poly_heading.num_points = 0;
   /* Launch realtime thread */
   goldo_asserv_arch_init();
   g_asserv.initialized = true;
@@ -140,97 +146,45 @@ int goldo_asserv_enable(void)
   return OK;  
 }
 
-int goldo_match_timer_start(int time_s)
+
+
+static void goldo_asserv_begin_command_straight_line(goldo_asserv_command_s* c)
 {
-  s_match_timer_begin = g_asserv.elapsed_time_ms;
-  s_match_timer_end = g_asserv.elapsed_time_ms + time_s*1000;
-  return OK;
+    goldo_log(0,"%f goldo_asserv: begin execute straight line\n",g_asserv.elapsed_time_ms*1e-3);
+    goldo_log(0,"goldo_asserv: speed=%f, distance=%f\n",c->speed,c->distance);
+    goldo_polyline_gen_trapezoidal_1(&s_poly_distance,
+                                     g_asserv.elapsed_time_ms*1e-3,
+                                     g_odometry_state.elapsed_distance,
+                                     c->distance,
+                                     c->speed,
+                                     c->acceleration,
+                                     c->decceleration);
+    s_poly_distance_index = 0;
 }
 
-int goldo_match_timer_get_value(void)
+static void goldo_asserv_begin_command_rotation(goldo_asserv_command_s* c)
 {
-  return g_asserv.elapsed_time_ms - s_match_timer_begin;
+    goldo_log(0,"goldo_asserv: begin execute rotation line\n");
+    goldo_log(0,"goldo_asserv: speed=%f, angle=%f\n",c->speed,c->distance);
+    goldo_polyline_gen_trapezoidal_1(&s_poly_heading,
+                                     g_asserv.elapsed_time_ms*1e-3,
+                                     g_odometry_state.heading_change,
+                                     c->distance,
+                                     c->speed,
+                                     c->acceleration,
+                                     c->decceleration);
+    s_poly_heading_index = 0;
 }
-bool goldo_match_timer_is_finished(void)
-{
-return g_asserv.elapsed_time_ms < s_match_timer_end;
-}
-
-static bool goldo_asserv_update_segment(void)
-{
-  while(s_asserv_segment_index != s_asserv_segment_end && s_asserv_segments[s_asserv_segment_index+1].t < g_asserv.elapsed_time_ms)
-  {
-    goldo_log(0,"goldo_asserv: advance polyline segment\n");
-    s_asserv_segment_index++;
-  }
-  if(s_asserv_segment_index == s_asserv_segment_end)
-  {
-
-    return false;
-  }
-  goldo_asserv_polyline_pt_s* pt = s_asserv_segments+s_asserv_segment_index;
-  float u = (g_asserv.elapsed_time_ms - pt->t) * 1e-3; 
-  g_asserv.elapsed_distance_setpoint = pt->d0 + u*(pt->d1 + u*(pt->d2 + u* pt->d3));
-  g_asserv.speed_setpoint = pt->d1 + u*(2*pt->d2 + 3*u* pt->d3);
-  return true;  
-}
-
 static void goldo_asserv_begin_command(goldo_asserv_command_s* c)
 {
   switch(c->command)
   {
     case GOLDO_ASSERV_COMMAND_STRAIGHT_LINE:
-    {
-      goldo_log(0,"goldo_asserv: begin execute straight line\n");
-      float speed = c->speed;
-      goldo_log(0,"goldo_asserv: speed=%f, distance=%f\n",speed,c->distance);
-      float d_a = (speed * speed) * 0.5f / c->acceleration;
-      float d_d = (speed * speed) * 0.5f / c->decceleration;
-      float t_a = 0;
-      float t_d = 0;
-      float t_c = 0;
-      
-      if(d_a+d_d > c->distance)
-      {
-        goldo_log(0,"goldo_asserv: distance too short %f\n",t_a);
-      } else
-      {
-        t_a = speed/c->acceleration;
-        t_d = speed/c->decceleration;
-        t_c = (c->distance - d_a - d_d)/speed;
-      }
-      /*set polyline*/
-      uint32_t ct = g_asserv.elapsed_time_ms;
-      float cd = g_odometry_state.elapsed_distance;
-      s_asserv_segments[0].t=ct;
-      s_asserv_segments[0].d0=cd;
-      s_asserv_segments[0].d1=0;
-      s_asserv_segments[0].d2=0.5f*c->acceleration;
-      s_asserv_segments[0].d3=0;
-      ct+=t_a*1e3;
-      cd+=d_a;
-      s_asserv_segments[1].t=ct;
-      s_asserv_segments[1].d0=cd;
-      s_asserv_segments[1].d1=speed;
-      s_asserv_segments[1].d2=0;
-      s_asserv_segments[1].d3=0;
-      ct+=t_c*1e3;
-      cd+=c->distance - d_a - d_d;
-      s_asserv_segments[2].t=ct;
-      s_asserv_segments[2].d0=cd;
-      s_asserv_segments[2].d1=speed;
-      s_asserv_segments[2].d2=-0.5f*c->decceleration;
-      s_asserv_segments[2].d3=0;
-      ct+=t_d*1e3;
-      s_asserv_segments[3].t=ct;      
-      s_asserv_segment_index=0;
-      s_asserv_segment_end=3;
-
-
-
-      goldo_log(0,"goldo_asserv: %f\n",d_a);
-    }
-    
+      goldo_asserv_begin_command_straight_line(c);
+      break;
+    case GOLDO_ASSERV_COMMAND_ROTATION:
+      goldo_asserv_begin_command_rotation(c);
+      break;
   }
 }
 
@@ -241,13 +195,26 @@ static bool goldo_asserv_update_command(goldo_asserv_command_s* c)
   {
     case GOLDO_ASSERV_COMMAND_STRAIGHT_LINE:
     {
-      if(!goldo_asserv_update_segment())
-      {
+
+      if(!goldo_polyline_sample(&s_poly_distance,g_asserv.elapsed_time_ms*1e-3,
+        &g_asserv.elapsed_distance_setpoint,&g_asserv.speed_setpoint,&s_poly_distance_index))
+      {        
         goldo_log(0,"goldo_asserv: end execute straight line\n");
         return true;
       }
-      //goldo_log(0,"goldo_asserv: start execute straight line\n");
     }
+    break;
+  case GOLDO_ASSERV_COMMAND_ROTATION:
+    {
+
+      if(!goldo_polyline_sample(&s_poly_heading,g_asserv.elapsed_time_ms*1e-3,
+        &g_asserv.heading_change_setpoint,&g_asserv.yaw_rate_setpoint,&s_poly_heading_index))
+      {        
+        goldo_log(0,"goldo_asserv: end execute rotation\n");
+        return true;
+      }
+    }
+    break;
     
   }
 
@@ -363,14 +330,32 @@ int goldo_asserv_straight_line(float distance, float speed, float accel, float d
   } else
   {
     goldo_log(0,"goldo_asserv: command fifo full\n");
-  }
-  
+  }  
+  return OK;
+}
+
+int goldo_asserv_rotation(float heading_change, float yaw_rate, float angular_accel, float angular_deccel)
+{
+  goldo_asserv_command_s* c = command_fifo_begin_write();
+  goldo_log(0,"goldo_asserv: enqueue rotation\n");
+  if(c != NULL)
+  {
+    c->command = GOLDO_ASSERV_COMMAND_ROTATION;
+    c->distance = heading_change;
+    c->speed = yaw_rate;
+    c->acceleration = angular_accel;
+    c->decceleration = angular_deccel;
+    command_fifo_end_write();
+  } else
+  {
+    goldo_log(0,"goldo_asserv: command fifo full\n");
+  }  
   return OK;
 }
 
 /*********************************************************************
  * Command fifo functions.
-/********************************************************************/
+ ********************************************************************/
 
 int command_fifo_init(void)
 {

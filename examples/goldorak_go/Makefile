@@ -44,10 +44,13 @@ CSRCS = goldo_asserv.c\
         goldo_pid_filter.c\
         goldo_odometry.c\
         goldo_command_fifo.c\
+        goldo_polyline.c\
+        goldo_match_timer.c\
         goldo_main_loop.c\
         robot/robot.c\
         robot/arms.c\
-        robot/adversary_detection.c
+        robot/adversary_detection.c \
+        
 MAINSRC = goldo_go_main.c
 
 CONFIG_XYZ_PROGNAME ?= goldorak_go$(EXEEXT)

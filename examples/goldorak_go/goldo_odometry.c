@@ -13,7 +13,6 @@
 #include <debug.h>
 #include <string.h>
 
-typedef unsigned int wint_t;
 #include <math.h>
 
 

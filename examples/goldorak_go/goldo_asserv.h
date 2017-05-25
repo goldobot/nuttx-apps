@@ -14,7 +14,8 @@ typedef enum GOLDO_ASSERV_STATE
  	ASSERV_STATE_IDLE,
 	ASSERV_STATE_MOVING,
   ASSERV_STATE_RECALAGE,
-  ASSERV_STATE_EMERGENCY_STOP, 	
+  ASSERV_STATE_EMERGENCY_STOP,
+  ASSERV_STATE_STOPPED,
   ASSERV_STATE_MATCH_FINISHED,
   ASSERV_STATE_ERROR
 } GOLDO_ASSERV_STATE;
@@ -49,7 +50,7 @@ int goldo_asserv_enable(void);
 int goldo_asserv_emergency_stop(void);
 
 int goldo_asserv_straight_line(float distance, float speed, float accel, float deccel);
-int goldo_aserv_rotation(float heading_change,float angular_accel, float angular_deccel);
+int goldo_asserv_rotation(float heading_change,float yaw_rate, float angular_accel, float angular_deccel);
 
 /* Wait until all commands are finished or an error occurs*/
 GOLDO_ASSERV_STATE goldo_asserv_wait_finished(void);
@@ -61,10 +62,5 @@ GOLDO_ASSERV_STATE goldo_asserv_wait_finished(void);
 int goldo_asserv_arch_init(void);
 int goldo_asserv_arch_release(void);
 int goldo_asserv_do_step(int dt_ms);
-
-/* Match timer */
-int goldo_match_timer_start(int time_s);
-int goldo_match_timer_get_value(void);
-bool goldo_match_timer_is_finished(void);
 
 #endif /* __ASSERV_THOMAS_H__ */
