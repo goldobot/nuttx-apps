@@ -1,5 +1,5 @@
 ############################################################################
-# apps/examples/goldorak_go/Makefile
+# apps/examples/goldorak_go_simple_test/Makefile
 #
 #   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -35,18 +35,18 @@
 
 -include $(TOPDIR)/Make.defs
 
-# GOLDORAK_GO Example.
+# GOLDORAK_GO_SIMPLE_TEST Example.
 
 ASRCS =
-CSRCS = asserv.c
-MAINSRC = goldorak_go_main.c
+CSRCS =
+MAINSRC = goldorak_go_simple_test_main.c
 
-CONFIG_XYZ_PROGNAME ?= goldorak_go$(EXEEXT)
+CONFIG_XYZ_PROGNAME ?= goldorak_go_simple_test$(EXEEXT)
 PROGNAME = $(CONFIG_XYZ_PROGNAME)
 
-# GOLDORAK_GO built-in application info
+# GOLDORAK_GO_SIMPLE_TEST built-in application info
 
-APPNAME = goldorak_go
+APPNAME = goldorak_go_simple_test
 PRIORITY = SCHED_PRIORITY_DEFAULT
 STACKSIZE = 2048
 
