@@ -1,20 +1,6 @@
 #include "goldo_pid_filter.h"
 
-typedef struct goldo_pid_filter_s
-{
-  float cur_pos;
-  float cur_speed;
-  float tar_pos;
-  float tar_speed;
-  float out;
-  float k_p;
-  float k_i;
-  float k_d;
-  float ff_speed;
-  float lim_i;
-  float integrator;
-  
-} goldo_pid_filter_s;
+
 
 int goldo_pid_filter_init(goldo_pid_filter_s* s)
 {
@@ -29,6 +15,16 @@ int goldo_pid_filter_init(goldo_pid_filter_s* s)
 	return OK;
 }
 
+int goldo_pid_filter_set_config(goldo_pid_filter_s* f, goldo_pid_filter_config_s* c)
+{
+	f->k_p = c->k_p;
+	f->k_d = c->k_d;
+	f->k_i = c->k_i;
+	f->lim_i = c->lim_i;	
+	f->ff_speed = c->ff_speed;
+	return OK;
+}
+
 int goldo_pid_filter_release(goldo_pid_filter_s* s)
 {
 	return OK;
@@ -40,10 +36,14 @@ int goldo_pid_set_target(goldo_pid_filter_s* s, float pos, float speed)
 	s->tar_speed = speed;
 }
 
-int goldo_pid_filter_do_step(goldo_pid_filter_s* s,float pos,float speed,float* out)
+int goldo_pid_filter_do_step(goldo_pid_filter_s* s,float dt, float pos,float speed,float* out)
 {
-	s->integrator += (pos - s->tar_pos) * s->k_i;
+	s->cur_pos = pos;
+	s->cur_speed = speed;
+	s->integrator += (s->tar_pos - pos) * dt * s->k_i;
 	if(s->integrator > s->lim_i) s->integrator = s->lim_i;
 	if(s->integrator < -s->lim_i) s->integrator = -s->lim_i;
-	return (pos-s->tar_pos) * s->k_p + (speed - s->tar_speed) * s->k_d + speed * s->ff_speed + s->integrator;
+	*out= (s->tar_pos - pos) * s->k_p + (s->tar_speed - speed) * s->k_d + speed * s->ff_speed + s->integrator;
+
+	return OK;
 }

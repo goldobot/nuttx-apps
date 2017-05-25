@@ -84,9 +84,9 @@ Ce qui marche : (carte-moteur)
 //#include <math.h>
 
 
-
+#include "robot/goldo_robot.h"
 #include "goldorak_go.h"
-#include "asserv_thomas.h"
+#include "goldo_asserv.h"
 #include "goldo_asserv_hal.h"
 #include "goldo_odometry.h"
 
@@ -196,24 +196,7 @@ static void parse_args(int argc, FAR char **argv)
  * Public Functions
  ****************************************************************************/
 
-int goldo_robot_init(void)
-{
-  goldo_odometry_config_s odometry_config;
-  odometry_config.dist_per_count_left = 0.5e-3f;
-  odometry_config.dist_per_count_right = 0.5e-3f;
-  odometry_config.wheel_spacing = 100e-3f;
-  odometry_config.update_period = 10e-3f;
-  goldo_odometry_init();
-  goldo_odometry_set_config(&odometry_config); 
-  goldo_asserv_init();
-}
 
-int goldo_robot_release(void)
-{
-  printf("goldorak_go_main: disabling motors\n");
-  goldo_asserv_quit();
-  fflush(stdout);
-}
 
 /****************************************************************************
  * Name: goldorak_go_main
@@ -242,6 +225,7 @@ int goldorak_go_main(int argc, char *argv[])
       break;
   }
   goldo_robot_release();
+  fflush(stdout);
   return OK;
 }
 

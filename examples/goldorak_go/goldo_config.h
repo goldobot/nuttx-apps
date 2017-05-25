@@ -1,7 +1,9 @@
 #ifndef __GOLDO_CONFIG_H__
 #define __GOLDO_CONFIG_H__
-#define OK 0
-#define ERROR 1
+#include <stdio.h>
+#include <stdbool.h>
+//#define OK 0
+//#define ERROR 1
 
 #define goldo_trace(message) printf("%s",__FILE__)
 #define goldo_log(importance,...) printf(__VA_ARGS__)

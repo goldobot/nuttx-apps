@@ -1,4 +1,4 @@
-#include "asserv_thomas.h"
+#include "goldo_asserv.h"
 #include "goldo_asserv_hal.h"
 #include "goldo_odometry.h"
 
@@ -13,6 +13,7 @@
 //#include <debug.h>
 #include <semaphore.h>
 #include <pthread.h>
+
 //#include <nuttx/init.h>
 //#include <nuttx/arch.h>
 //#include <string.h>
@@ -62,6 +63,8 @@ static int command_fifo_init(void);
 static void command_fifo_clear(void);
 static goldo_asserv_command_s* command_fifo_current_command(void);
 static void command_fifo_advance(void);
+static goldo_asserv_command_s* command_fifo_begin_write(void);
+static int command_fifo_end_write(void);
 
 /*polynomial curve segment*/
 typedef struct goldo_asserv_segment_pt_s
@@ -82,41 +85,12 @@ static goldo_asserv_polyline_pt_s s_asserv_segments[16];
 static int s_asserv_segment_index=0;
 static int s_asserv_segment_end=0;
 
+static goldo_pid_filter_s s_pid_distance;
+static goldo_pid_filter_s s_pid_heading;
+
 /*
   Support functions
 */
-
-
-
-goldo_asserv_command_s* command_fifo_begin_write(void)
-{
-  pthread_mutex_lock(&s_command_fifo.mutex);
-  int next_command_index = s_command_fifo.end+1;
-  if(next_command_index == GOLDO_ASSERV_MAX_COMMANDS)
-  {
-    next_command_index = 0;
-  }
-  if(next_command_index == s_command_fifo.index)
-  {
-    pthread_mutex_unlock(&s_command_fifo.mutex);
-    return NULL;
-  } else
-  {
-    return s_command_fifo.commands + s_command_fifo.end;
-  }
-  
-}
-
-goldo_asserv_command_s* command_fifo_end_write(void)
-{
-  int next_command_index = s_command_fifo.end+1;
-  if(next_command_index == GOLDO_ASSERV_MAX_COMMANDS)
-  {
-    next_command_index = 0;
-  }
-  s_command_fifo.end = next_command_index;
-  pthread_mutex_unlock(&s_command_fifo.mutex);
-}
 
 
 int goldo_asserv_init(void)
@@ -132,6 +106,16 @@ int goldo_asserv_init(void)
 
 
   /* Initialize feedback loop values*/
+  goldo_pid_filter_init(&s_pid_distance);
+  goldo_pid_filter_init(&s_pid_heading);
+  goldo_pid_filter_config_s pid_config_distance;
+  pid_config_distance.k_p = 50;
+  pid_config_distance.k_d = 0;
+  pid_config_distance.k_i = 0;
+  pid_config_distance.ff_speed = 0;
+  goldo_pid_filter_set_config(&s_pid_distance,&pid_config_distance);
+
+  /* Launch realtime thread */
   goldo_asserv_arch_init();
   return OK;
 }
@@ -201,7 +185,7 @@ static void goldo_asserv_begin_command(goldo_asserv_command_s* c)
       goldo_log(0,"goldo_asserv: begin execute straight line\n");
       uint32_t start_time = g_asserv.elapsed_time_ms;
       float speed = c->speed;
-      goldo_log(0,"goldo_asserv: speed=%f, distnace=%f\n",speed,c->distance);
+      goldo_log(0,"goldo_asserv: speed=%f, distance=%f\n",speed,c->distance);
       float d_a = (speed * speed) * 0.5f / c->acceleration;
       float d_d = (speed * speed) * 0.5f / c->decceleration;
       float t_a = 0;
@@ -272,17 +256,6 @@ static bool goldo_asserv_update_command(goldo_asserv_command_s* c)
   return false;
 }
 
-/* Emergency stop */
-static int emergency_stop_begin(void)
-{
-
-}
-static bool emergency_stop_update(void)
-{
-  return true;
-}
-
-
 int goldo_asserv_do_step(int dt_ms)
 {
   g_asserv.elapsed_time_ms += dt_ms;
@@ -336,7 +309,22 @@ int goldo_asserv_do_step(int dt_ms)
       break;
   }
   /* Update PID loop*/
-  goldo_log(0,"foo: %f\n",g_asserv.elapsed_distance_setpoint);
+  if(g_asserv.asserv_state != ASSERV_STATE_DISABLED)
+  {
+    float out_pid_distance=0;
+    float out_pid_heading=0;
+
+    goldo_pid_set_target(&s_pid_distance,g_asserv.elapsed_distance_setpoint,g_asserv.speed_setpoint);
+    goldo_pid_filter_do_step(&s_pid_distance,dt_ms*1e-3,g_odometry_state.elapsed_distance, g_odometry_state.speed,&out_pid_distance);
+
+    goldo_pid_set_target(&s_pid_heading,g_asserv.heading_change_setpoint,g_asserv.yaw_rate_setpoint);
+    goldo_pid_filter_do_step(&s_pid_heading,dt_ms*1e-3,g_odometry_state.heading_change, g_odometry_state.yaw_rate,&out_pid_heading);
+
+    g_asserv.motor_pwm_left = out_pid_distance - out_pid_heading;
+    g_asserv.motor_pwm_right = out_pid_distance + out_pid_heading;
+
+  }
+  
 
   return OK;
 }
@@ -359,6 +347,7 @@ int goldo_asserv_emergency_stop(void)
   command_fifo_clear();
   pthread_cond_broadcast(&s_asserv_cond);
   pthread_mutex_unlock(&s_asserv_mutex);
+  return OK;
 }
 
 int goldo_asserv_straight_line(float distance, float speed, float accel, float deccel)
@@ -382,7 +371,7 @@ int goldo_asserv_straight_line(float distance, float speed, float accel, float d
 }
 
 /*********************************************************************
-/* Command fifo functions.
+ * Command fifo functions.
 /********************************************************************/
 
 int command_fifo_init(void)
@@ -390,6 +379,7 @@ int command_fifo_init(void)
   s_command_fifo.index = 0;
   s_command_fifo.end = 0;
   pthread_mutex_init(&s_command_fifo.mutex,NULL);
+  return OK;
 }
 
 goldo_asserv_command_s* command_fifo_current_command(void)
@@ -425,4 +415,34 @@ void command_fifo_advance(void)
     }
   }
   pthread_mutex_unlock(&s_command_fifo.mutex);
+}
+
+goldo_asserv_command_s* command_fifo_begin_write(void)
+{
+  pthread_mutex_lock(&s_command_fifo.mutex);
+  int next_command_index = s_command_fifo.end+1;
+  if(next_command_index == GOLDO_ASSERV_MAX_COMMANDS)
+  {
+    next_command_index = 0;
+  }
+  if(next_command_index == s_command_fifo.index)
+  {
+    pthread_mutex_unlock(&s_command_fifo.mutex);
+    return NULL;
+  } else
+  {
+    return s_command_fifo.commands + s_command_fifo.end;
+  }  
+}
+
+int command_fifo_end_write(void)
+{
+  int next_command_index = s_command_fifo.end+1;
+  if(next_command_index == GOLDO_ASSERV_MAX_COMMANDS)
+  {
+    next_command_index = 0;
+  }
+  s_command_fifo.end = next_command_index;
+  pthread_mutex_unlock(&s_command_fifo.mutex);
+  return OK;
 }

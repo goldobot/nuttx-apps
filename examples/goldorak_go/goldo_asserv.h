@@ -1,8 +1,8 @@
 #ifndef __ASSERV_THOMAS_H__
 #define __ASSERV_THOMAS_H__
 #include "goldo_config.h"
+#include "goldo_pid_filter.h"
 
-#include <stdbool.h>
 #include <stdint.h>
 
 #define GOLDO_ASSERV_MAX_COMMANDS 16
@@ -18,6 +18,11 @@ typedef enum GOLDO_ASSERV_STATE
   ASSERV_STATE_MATCH_FINISHED,
   ASSERV_STATE_ERROR
 } GOLDO_ASSERV_STATE;
+
+typedef struct goldo_asserv_config_s
+{
+
+} goldo_asserv_config_s;
 
 typedef struct goldo_asserv_s
 {
