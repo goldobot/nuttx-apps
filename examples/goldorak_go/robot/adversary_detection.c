@@ -15,6 +15,7 @@
 
 static pthread_t s_adversary_detection_thread_id;
 bool s_adversary_detection_enabled = false;
+bool s_adversary_detection_stop = false;
 
 
 static void *thread_adversary_detection(void *arg);
@@ -22,12 +23,15 @@ static void *thread_adversary_detection(void *arg);
 int goldo_adversary_detection_init(void)
 {
 	goldo_log(0,"goldo_adversary_detection: init\n");
+	s_adversary_detection_stop = false;
 	pthread_create(&s_adversary_detection_thread_id, NULL, thread_adversary_detection, NULL);
 }
 
 int goldo_adversary_detection_release(void)
 {
 	goldo_log(0,"goldo_adversary_detection: release\n");
+	s_adversary_detection_stop = true;
+	pthread_join(s_adversary_detection_thread_id,NULL);
 	return OK;
 }
 
@@ -39,8 +43,10 @@ int goldo_aversary_detection_set_enable(bool enable)
 void *thread_adversary_detection(void *arg)
 {
 	goldo_log(0,"goldo_adversary_detection: start thread\n");
-	while(1)
+	while(!s_adversary_detection_stop)
 	{
 		usleep(10000);
 	}
+	goldo_log(0,"goldo_adversary_detection: thread finished\n");
+	return NULL;
 }

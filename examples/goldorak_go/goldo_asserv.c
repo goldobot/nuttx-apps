@@ -57,8 +57,6 @@ pthread_mutex_t s_asserv_mutex;
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
-static int emergency_stop_begin(void);
-static bool emergency_stop_update(void);
 static int command_fifo_init(void);
 static void command_fifo_clear(void);
 static goldo_asserv_command_s* command_fifo_current_command(void);
@@ -117,6 +115,7 @@ int goldo_asserv_init(void)
 
   /* Launch realtime thread */
   goldo_asserv_arch_init();
+  g_asserv.initialized = true;
   return OK;
 }
 
@@ -183,7 +182,6 @@ static void goldo_asserv_begin_command(goldo_asserv_command_s* c)
     case GOLDO_ASSERV_COMMAND_STRAIGHT_LINE:
     {
       goldo_log(0,"goldo_asserv: begin execute straight line\n");
-      uint32_t start_time = g_asserv.elapsed_time_ms;
       float speed = c->speed;
       goldo_log(0,"goldo_asserv: speed=%f, distance=%f\n",speed,c->distance);
       float d_a = (speed * speed) * 0.5f / c->acceleration;

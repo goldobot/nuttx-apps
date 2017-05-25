@@ -43,7 +43,9 @@ CSRCS = goldo_asserv.c\
         goldo_asserv_arch.c\
         goldo_pid_filter.c\
         goldo_odometry.c\
-        robot/arms.c robot/robot.c\
+        goldo_main_loop.c\
+        robot/robot.c\
+        robot/arms.c\
         robot/adversary_detection.c
 MAINSRC = goldo_go_main.c
 

@@ -21,7 +21,6 @@ int goldo_robot_init(void)
 
 int goldo_robot_release(void)
 {
-  printf("goldorak_go_main: disabling motors\n");
   goldo_adversary_detection_release();
   goldo_arms_release();
   goldo_asserv_quit();

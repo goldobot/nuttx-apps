@@ -61,42 +61,23 @@ Ce qui marche : (carte-moteur)
  * Included Files
  ****************************************************************************/
 
-//#include <nuttx/config.h>
-
-//#include <sys/types.h>
-//#include <sys/ioctl.h>
-//#include <sys/time.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-//#include <fcntl.h>
-//#include <errno.h>
-//#include <debug.h>
-//#include <semaphore.h>
-//#include <pthread.h>
-//#include <signal.h>
-//#include <nuttx/init.h>
-//#include <nuttx/arch.h>
+
 #include <string.h>
 
 //typedef unsigned int wint_t;
 //#include <math.h>
 
-
 #include "robot/goldo_robot.h"
-#include "goldorak_go.h"
-#include "goldo_asserv.h"
-#include "goldo_asserv_hal.h"
 #include "goldo_odometry.h"
-
+#include "goldo_main_loop.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-#define GOLDO_MODE_MATCH 1
-#define GOLDO_MODE_TEST_ODOMETRY 2
 
 /****************************************************************************
  * Private Types
@@ -105,8 +86,7 @@ Ce qui marche : (carte-moteur)
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
-int main_loop_match(void);
-int main_loop_test_odometry(void);
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -160,43 +140,37 @@ static void parse_args(int argc, FAR char **argv)
     goldorak_go_help();
     exit(0);
   }
-  if (strcmp(ptr,"match"))
+  if (strcmp(ptr,"match")==0)
   {
     run_mode = GOLDO_MODE_MATCH;
     return;
   }
-  if (strcmp(ptr,"test_odometry"))
+  if (strcmp(ptr,"homologation")==0)
+  {
+    run_mode = GOLDO_MODE_HOMOLOGATION;
+    return;
+  }
+  if (strcmp(ptr,"test_odometry")==0)
   {
     run_mode = GOLDO_MODE_TEST_ODOMETRY;
     return;
   }
-
-#if 0 /* FIXME : DEBUG */
-  if (argc!=4) {
-    goldorak_go_help();
-    exit(1);
+  if (strcmp(ptr,"test_motors")==0)
+  {
+    run_mode = GOLDO_MODE_TEST_MOTORS;
+    return;
   }
-
-  x_final = strtof(argv[1], NULL);
-  y_final = strtof(argv[2], NULL);
-  theta_final = strtof(argv[3], NULL);
-#else
-  if (argc!=2) {
-    //goldorak_go_help();
-    exit(1);
+  if (strcmp(ptr,"test_asserv")==0)
+  {
+    run_mode = GOLDO_MODE_TEST_ASSERV;
+    return;
   }
-
-  //D_final = strtof(argv[1], NULL);
-  //rc_corr = strtof(argv[2], NULL);
-#endif
 }
 
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-
 
 /****************************************************************************
  * Name: goldorak_go_main
@@ -210,51 +184,30 @@ int goldorak_go_main(int argc, char *argv[])
 {
  // int ret;
 
-
   /* Parse the command line */
   parse_args(argc, argv);
 
   goldo_robot_init();
-  switch(run_mode)
+   switch(run_mode)
   {
     case GOLDO_MODE_MATCH:
       main_loop_match();
       break;
+    case GOLDO_MODE_HOMOLOGATION:
+      main_loop_homologation();
+      break;
     case GOLDO_MODE_TEST_ODOMETRY:
       main_loop_test_odometry();
       break;
+    case GOLDO_MODE_TEST_ASSERV:
+      main_loop_test_asserv();
+      break;
+    case GOLDO_MODE_TEST_MOTORS:
+      main_loop_test_motors();
+      break;
   }
   goldo_robot_release();
-  fflush(stdout);
+  printf("End of main\n");
+  exit(0);
   return OK;
-}
-
-int main_loop_match(void)
-{
-  /* Wait for start of match*/
-  printf("main_loop: Wait for start of match\n");
-  /*replace true by check on start gpio*/
-  while(true)
-  {
-    usleep(10000);
-  }
-  printf("main_loop: Start match\n");
-  goldo_asserv_enable();
-  goldo_match_timer_start(90);
-  
-  goldo_asserv_straight_line(0.5, 0.5, 0.5, 0.5);
-  
-
-  /* STOP motors */
-
-}
-
-int main_loop_test_odometry(void)
-{
-  while(1)
-  {
-    printf("encoders: %i,%i, %i\n", g_asserv.elapsed_time_ms,g_odometry_state.counts_left,g_odometry_state.counts_right);
-    usleep(100000);
-  }
-
 }

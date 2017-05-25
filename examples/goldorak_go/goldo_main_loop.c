@@ -41,10 +41,45 @@ int main_loop_homologation(void)
   goldo_match_timer_start(90);
   
   goldo_asserv_straight_line(0.5, 0.5, 0.5, 0.5);
-  
-
+  goldo_asserv_wait_finished();
   /* STOP motors */
+  return OK;
+}
 
+int main_loop_test_motors(void)
+{
+  int command=0;
+  int pwm_left=0;
+  int pwm_right=0;
+  char buffer[16];
+  goldo_asserv_hal_set_motors_enable(true,true);
+  while(1)
+  {
+    printf("Pwm left: %i, right: %i\n",pwm_left,pwm_right);
+    printf("(1) Set left motor pwm\n(2) Set right motor_pwm\n(3) Quit\n Enter command: \n");
+    command = 0;
+    fgets(buffer,16,stdin);
+    sscanf(buffer,"%d",&command);
+    
+    switch(command)
+    {
+      case 1:
+          printf("Input pwm (-60000,60000): ");
+          fgets(buffer,16,stdin);
+          sscanf(buffer,"%d",&pwm_left);
+        break;
+      case 2:
+          printf("Input pwm (-60000,60000): ");
+          fgets(buffer,16,stdin);
+          sscanf(buffer,"%d",&pwm_right);
+          break;         
+      case 3:
+        return OK;
+      default:
+        break;
+    }
+    goldo_asserv_hal_set_motors_pwm(pwm_left,pwm_right);
+  }
 }
 
 int main_loop_test_odometry(void)
@@ -54,6 +89,7 @@ int main_loop_test_odometry(void)
     printf("encoders: %i,%i, %i\n", g_asserv.elapsed_time_ms,g_odometry_state.counts_left,g_odometry_state.counts_right);
     usleep(100000);
   }
+  return OK;
 }
 
 int main_loop_test_asserv(void)
@@ -66,4 +102,5 @@ int main_loop_test_asserv(void)
   goldo_asserv_wait_finished();
   sleep(10);
   printf("finished movement sequence\n");
+  return OK;
 }

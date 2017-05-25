@@ -34,6 +34,7 @@ int goldo_pid_set_target(goldo_pid_filter_s* s, float pos, float speed)
 {
 	s->tar_pos = pos;
 	s->tar_speed = speed;
+	return OK;
 }
 
 int goldo_pid_filter_do_step(goldo_pid_filter_s* s,float dt, float pos,float speed,float* out)

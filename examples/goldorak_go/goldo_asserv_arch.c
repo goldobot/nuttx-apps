@@ -51,15 +51,16 @@ int goldo_asserv_arch_init(void)
     {
       return EXIT_FAILURE;
     }
+    s_asserv_arch.initialized = true;
     return OK;
 }
 
 int goldo_asserv_arch_release(void)
 {
-  if(!s_asserv_arch.initialized)
-  {
-    return OK;
-  }
+ // if(!s_asserv_arch.initialized)
+ // {
+ //   return OK;
+ // }
   int ret = 0;
   bool err = false;
   /* Stop the real time thread */
@@ -91,6 +92,7 @@ int goldo_asserv_arch_release(void)
 
 static void *thread_asserv(void *arg)
 {
+  printf("goldo_asserv_arch: start thread\n");
   sigset_t set;
   siginfo_t info;
   sigfillset(&set);
@@ -108,8 +110,8 @@ static void *thread_asserv(void *arg)
     {
       case ASSERV_STATE_DISABLED:
         {
-          goldo_asserv_hal_set_motors_enable(false,false);
-          goldo_asserv_hal_set_motors_pwm(0,0);
+          //goldo_asserv_hal_set_motors_enable(false,false);
+          //goldo_asserv_hal_set_motors_pwm(0,0);
         }
         break;
       case ASSERV_STATE_IDLE:
@@ -154,15 +156,13 @@ static void *thread_asserv(void *arg)
           goldo_asserv_hal_set_motors_pwm(0,0);
         }
         break;
-
-
     }
    
     /* --------------------------------------------------------------------*/
   }
   /** fin BOUCLE PRINCIPALE ************************************************/
   /*************************************************************************/
-  printf("thread_asserv done\n");
+  printf("goldo_asserv_arch: thread finished\n");
   return NULL;
 }
 
