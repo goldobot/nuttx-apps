@@ -43,6 +43,7 @@ CSRCS = goldo_asserv.c\
         goldo_asserv_arch.c\
         goldo_pid_filter.c\
         goldo_odometry.c\
+        goldo_odometry_hal.c\
         goldo_command_fifo.c\
         goldo_polyline.c\
         goldo_match_timer.c\

@@ -22,7 +22,7 @@ static void *thread_adversary_detection(void *arg);
 
 int goldo_adversary_detection_init(void)
 {
-	goldo_log(0,"goldo_adversary_detection: init\n");
+	goldo_log(0,"goldo_adversary_detection: init\n");	
 	s_adversary_detection_stop = false;
 	pthread_create(&s_adversary_detection_thread_id, NULL, thread_adversary_detection, NULL);
 }
