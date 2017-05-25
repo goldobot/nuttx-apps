@@ -119,7 +119,8 @@ static void *thread_asserv(void *arg)
         }
         break;
       case ASSERV_STATE_MOVING:
-      
+      case ASSERV_STATE_EMERGENCY_STOP:
+      case ASSERV_STATE_RECALAGE:
         {
           goldo_asserv_hal_set_motors_enable(true,true);
           /*manage friction*/

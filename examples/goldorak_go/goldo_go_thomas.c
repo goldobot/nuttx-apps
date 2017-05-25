@@ -61,27 +61,27 @@ Ce qui marche : (carte-moteur)
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
+//#include <nuttx/config.h>
 
-#include <sys/types.h>
-#include <sys/ioctl.h>
-#include <sys/time.h>
+//#include <sys/types.h>
+//#include <sys/ioctl.h>
+//#include <sys/time.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <debug.h>
-#include <semaphore.h>
-#include <pthread.h>
-#include <signal.h>
-#include <nuttx/init.h>
-#include <nuttx/arch.h>
+//#include <fcntl.h>
+//#include <errno.h>
+//#include <debug.h>
+//#include <semaphore.h>
+//#include <pthread.h>
+//#include <signal.h>
+//#include <nuttx/init.h>
+//#include <nuttx/arch.h>
 #include <string.h>
 
-typedef unsigned int wint_t;
-#include <math.h>
+//typedef unsigned int wint_t;
+//#include <math.h>
 
 
 
@@ -90,20 +90,13 @@ typedef unsigned int wint_t;
 #include "goldo_asserv_hal.h"
 #include "goldo_odometry.h"
 
-#if 1 /* FIXME : DEBUG : HACK */
-int __fpclassifyd(double val)
-{
-  return 4;
-}
-#endif
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-//config at  10 Hz = 100ms = 100000us
-//config at 100 Hz = 10ms  = 10000us
-
+#define GOLDO_MODE_MATCH 1
+#define GOLDO_MODE_TEST_ODOMETRY 2
 
 /****************************************************************************
  * Private Types
@@ -112,15 +105,16 @@ int __fpclassifyd(double val)
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
-
+int main_loop_match(void);
+int main_loop_test_odometry(void);
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
+static int run_mode=0;
 /****************************************************************************
  * Public Data
  ****************************************************************************/
-
 
 /****************************************************************************
  * Private Functions
@@ -132,14 +126,6 @@ int __fpclassifyd(double val)
 
 /* FIXME : TODO : mettre tout ce bordel dans asserv.c */
 
-#define ASSERV_CMD_TYPE_NONE         0
-#define ASSERV_CMD_TYPE_TRANSLATION  1
-#define ASSERV_CMD_TYPE_ROTATION     2
-#define ASSERV_CMD_TYPE_STATIC       3
-
-#define ASSERV_STATE_IDDLE             0
-#define ASSERV_STATE_MOVING            1
-#define ASSERV_STATE_STOP_BLOCKED      2
 
 
 /****************************************************************************
@@ -174,6 +160,16 @@ static void parse_args(int argc, FAR char **argv)
     goldorak_go_help();
     exit(0);
   }
+  if (strcmp(ptr,"match"))
+  {
+    run_mode = GOLDO_MODE_MATCH;
+    return;
+  }
+  if (strcmp(ptr,"test_odometry"))
+  {
+    run_mode = GOLDO_MODE_TEST_ODOMETRY;
+    return;
+  }
 
 #if 0 /* FIXME : DEBUG */
   if (argc!=4) {
@@ -200,30 +196,8 @@ static void parse_args(int argc, FAR char **argv)
  * Public Functions
  ****************************************************************************/
 
-/****************************************************************************
- * Name: goldorak_go_main
- ****************************************************************************/
-
-#ifdef CONFIG_BUILD_KERNEL
-int main(int argc, FAR char *argv[])
-#else
-int goldorak_go_main(int argc, char *argv[])
-#endif
+int goldo_robot_init(void)
 {
-  int ret;
-
-
-  /* Parse the command line */
-  parse_args(argc, argv);
-
-#if 0 /* FIXME : DEBUG ++ */
-  printf(" x_final = %.6f\n", x_final);
-  printf(" y_final = %.6f\n", y_final);
-  printf(" theta_final = %.6f\n", theta_final);
-  printf(" sin(theta_final) = %.6f\n", sin(M_PI*theta_final/180.0));
-  printf(" cos(theta_final) = %.6f\n", cos(M_PI*theta_final/180.0));
-  return OK;
-#endif /* FIXME : DEBUG -- */
   goldo_odometry_config_s odometry_config;
   odometry_config.dist_per_count_left = 0.5e-3f;
   odometry_config.dist_per_count_right = 0.5e-3f;
@@ -232,19 +206,71 @@ int goldorak_go_main(int argc, char *argv[])
   goldo_odometry_init();
   goldo_odometry_set_config(&odometry_config); 
   goldo_asserv_init();
+}
+
+int goldo_robot_release(void)
+{
+  printf("goldorak_go_main: disabling motors\n");
+  goldo_asserv_quit();
+  fflush(stdout);
+}
+
+/****************************************************************************
+ * Name: goldorak_go_main
+ ****************************************************************************/
+//#define CONFIG_BUILD_KERNEL
+#ifdef CONFIG_BUILD_KERNEL
+int main(int argc, FAR char *argv[])
+#else
+int goldorak_go_main(int argc, char *argv[])
+#endif
+{
+ // int ret;
+
+
+  /* Parse the command line */
+  parse_args(argc, argv);
+
+  goldo_robot_init();
+  switch(run_mode)
+  {
+    case GOLDO_MODE_MATCH:
+      main_loop_match();
+      break;
+    case GOLDO_MODE_TEST_ODOMETRY:
+      main_loop_test_odometry();
+      break;
+  }
+  goldo_robot_release();
+  return OK;
+}
+
+int main_loop_match(void)
+{
+  /* Wait for start of match*/
+  printf("main_loop: Wait for start of match\n");
+  /*replace true by check on start gpio*/
+  while(true)
+  {
+    usleep(10000);
+  }
+  printf("main_loop: Start match\n");
   goldo_asserv_enable();
+  goldo_match_timer_start(90);
+  
   goldo_asserv_straight_line(0.5, 0.5, 0.5, 0.5);
-  g_asserv.motor_pwm_left=1.0f;
+  
+
+  /* STOP motors */
+
+}
+
+int main_loop_test_odometry(void)
+{
   while(1)
   {
     printf("encoders: %i,%i, %i\n", g_asserv.elapsed_time_ms,g_odometry_state.counts_left,g_odometry_state.counts_right);
     usleep(100000);
   }
 
-  /* STOP motors */
-  printf("goldorak_go_main: disabling motors\n");
-  goldo_asserv_quit();
-  fflush(stdout);
-  return OK;
 }
-

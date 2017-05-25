@@ -1,6 +1,7 @@
 
 #ifndef __GOLDO_ODOMETRY_H__
 #define __GOLDO_ODOMETRY_H__
+#include "goldo_config.h"
 
 typedef struct goldo_odometry_config_s
 {
@@ -34,7 +35,5 @@ int goldo_odometry_set_config(goldo_odometry_config_s* config);
 int goldo_odometry_update(void);
 int goldo_odometry_set_position(float x, float y, float heading);
 int goldo_odometry_reset_elapsed(void);
-
-
 
 #endif /* __GOLDO_ODOMETRY_H___ */

@@ -1,0 +1,1 @@
+int goldo_arms_init(void);
