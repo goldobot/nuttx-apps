@@ -114,13 +114,14 @@ static void *thread_asserv(void *arg)
           //goldo_asserv_hal_set_motors_pwm(0,0);
         }
         break;
-      case ASSERV_STATE_IDLE:
+      
       case ASSERV_STATE_STOPPED:
         {
           goldo_asserv_hal_set_motors_enable(true,true);
           goldo_asserv_hal_set_motors_pwm(0,0);
         }
         break;
+      case ASSERV_STATE_IDLE:
       case ASSERV_STATE_MOVING:
       case ASSERV_STATE_EMERGENCY_STOP:
       case ASSERV_STATE_RECALAGE:
@@ -130,7 +131,7 @@ static void *thread_asserv(void *arg)
           int pwm_left = g_asserv.motor_pwm_left*(1 << 16);
           int pwm_right =  g_asserv.motor_pwm_right*(1 << 16);
           int pwm_limit = 40000;
-          int pwm_friction_treshold = 15000;
+          int pwm_friction_treshold = 0*15000;
 
           if(pwm_left > 0) pwm_left += pwm_friction_treshold;
           if(pwm_left < 0) pwm_left += -pwm_friction_treshold;

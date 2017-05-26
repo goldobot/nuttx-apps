@@ -13,6 +13,34 @@
 #include <unistd.h>
 #include <system/readline.h>
 
+static char s_input_buffer[32];
+
+int get_int_value(const char* prompt,int* val)
+{
+  printf(prompt);
+  fflush(stdout);
+  readline(s_input_buffer,32,stdin,stdout);
+  sscanf(s_input_buffer,"%i",val);
+  return OK;
+}
+
+int get_float_value(const char* prompt,float* val)
+{
+  printf(prompt);
+  fflush(stdout);
+  readline(s_input_buffer,32,stdin,stdout);
+  sscanf(s_input_buffer,"%f",val);
+  return OK;
+}
+
+int get_char_value(const char* prompt,char* val)
+{
+  printf(prompt);
+  fflush(stdout);
+  readline(s_input_buffer,32,stdin,stdout);
+  *val = s_input_buffer[0];
+  return OK;
+}
 
 int main_loop_match(void)
 {
@@ -111,6 +139,122 @@ int main_loop_test_odometry(void)
   return OK;
 }
 
+static int tune_pid_distance(void)
+{
+  
+  float k_p=0;
+  float k_i=0;
+  float k_d=0;
+  float i_limit;
+  float speed_ff;
+  char command;
+  goldo_asserv_get_distance_pid_values(&k_p,&k_i,&k_d,&i_limit,&speed_ff);
+  while(1)
+  {
+    printf("Tune distance pid\n");
+    printf("K_P: %f\n",k_p);
+    printf("K_I: %f\n",k_i);
+    printf("K_D: %f\n",k_d);
+    printf("Integrator limit: %f\n",i_limit);
+    printf("Feedforward speed: %f\n",speed_ff);
+    printf("\n");
+    printf("Set (p), Set(i), Set (d), Set(l), Set (f), Test (t,T), BLock (b), Quit (q)\n");
+    get_char_value("Command: ",&command);
+    switch(command)
+    {
+      case 'p':
+        get_float_value("K_P: ",&k_p);
+        goldo_asserv_set_distance_pid_values(k_p,k_i,k_d,i_limit,speed_ff);
+        break;
+      case 'i':
+        get_float_value("K_I: ",&k_i);
+        goldo_asserv_set_distance_pid_values(k_p,k_i,k_d,i_limit,speed_ff);
+        break;
+      case 'd':
+        get_float_value("K_D: ",&k_d);
+        goldo_asserv_set_distance_pid_values(k_p,k_i,k_d,i_limit,speed_ff);
+        break;
+      case 'l':
+        get_float_value("Integral limit: ",&i_limit);
+        goldo_asserv_set_distance_pid_values(k_p,k_i,k_d,i_limit,speed_ff);
+        break;
+      case 'f':
+        get_float_value("Speed feedforward: ",&speed_ff);
+        goldo_asserv_set_distance_pid_values(k_p,k_i,k_d,i_limit,speed_ff);
+        break;
+      case 't':
+        goldo_asserv_straight_line(0.1,0.2,0.5,0.5);
+        goldo_asserv_straight_line(-0.1,0.2,0.5,0.5);
+        goldo_asserv_wait_finished();
+        break;
+      case 'T':
+        goldo_asserv_straight_line(0.3,0.2,0.5,0.5);
+        goldo_asserv_straight_line(-0.3,0.2,0.5,0.5);
+        goldo_asserv_wait_finished();
+        break;
+      case 'b':
+        goldo_asserv_wait(20);
+        goldo_asserv_wait_finished();
+    }
+  }
+}
+
+
+static int tune_pid_heading(void)
+{
+  
+  float k_p=0;
+  float k_i=0;
+  float k_d=0;
+  float i_limit;
+  float speed_ff;
+  char command;
+  goldo_asserv_get_heading_pid_values(&k_p,&k_i,&k_d,&i_limit,&speed_ff);
+  while(1)
+  {
+    printf("Tune heading pid\n");
+    printf("K_P: %f\n",k_p);
+    printf("K_I: %f\n",k_i);
+    printf("K_D: %f\n",k_d);
+    printf("Integrator limit: %f\n",i_limit);
+    printf("Feedforward speed: %f\n",speed_ff);
+    printf("\n");
+    printf("Set (p), Set(i), Set (d), Set(l), Set (f), Test (t,T), BLock (b), Quit (q)\n");
+    get_char_value("Command: ",&command);
+    switch(command)
+    {
+      case 'p':
+        get_float_value("K_P: ",&k_p);
+        goldo_asserv_set_heading_pid_values(k_p,k_i,k_d,i_limit,speed_ff);
+        break;
+      case 'i':
+        get_float_value("K_I: ",&k_i);
+        goldo_asserv_set_heading_pid_values(k_p,k_i,k_d,i_limit,speed_ff);
+        break;
+      case 'd':
+        get_float_value("K_D: ",&k_d);
+        goldo_asserv_set_heading_pid_values(k_p,k_i,k_d,i_limit,speed_ff);
+        break;
+      case 'l':
+        get_float_value("Integral limit: ",&i_limit);
+        goldo_asserv_set_heading_pid_values(k_p,k_i,k_d,i_limit,speed_ff);
+        break;
+      case 'f':
+        get_float_value("Speed feedforward: ",&speed_ff);
+        goldo_asserv_set_heading_pid_values(k_p,k_i,k_d,i_limit,speed_ff);
+        break;
+      case 't':
+        goldo_asserv_rotation(M_PI*0.5,0.2,0.5,0.5);
+        goldo_asserv_rotation(-M_PI*0.5,0.2,0.5,0.5);
+        goldo_asserv_wait_finished();  
+        break;
+      case 'b':
+        goldo_asserv_wait(20);
+        goldo_asserv_wait_finished();
+    }
+  }
+}
+
 int main_loop_test_asserv(void)
 {
   goldo_asserv_enable();
@@ -119,7 +263,7 @@ int main_loop_test_asserv(void)
   char buffer[32];
   while(1)
   {
-    printf("(1) Straight line\n(2) Rotation\n(q) Quit\n Enter command: \n");
+    printf("(1) Straight line\n(2) Rotation\n(4) Tune distance PID\n(q) Quit\n Enter command: \n");
     command = 0;
     readline(buffer,32,stdin,stdout);
     sscanf(buffer,"%d",&command);
@@ -136,27 +280,10 @@ int main_loop_test_asserv(void)
         int speed;
         int acceleration;
         int decceleration;
-        printf("\nDistance (mm): ");
-        fflush(stdout);
-        readline(buffer,32,stdin,stdout);
-        sscanf(buffer,"%d",&distance);
-
-        printf("Speed (mm/s): ");
-        fflush(stdout);
-        readline(buffer,32,stdin,stdout);
-        sscanf(buffer,"%d",&speed);
-        fflush(stdout);
-
-        printf("Acceleration (mm/s^2): ");
-        fflush(stdout);
-        readline(buffer,32,stdin,stdout);
-        sscanf(buffer,"%d",&acceleration);
-        fflush(stdout);
-
-        printf("Decceleration (mm/s^2): ");
-        fflush(stdout);
-        readline(buffer,32,stdin,stdout);
-        sscanf(buffer,"%d",&decceleration);
+        get_int_value("Distance (mm): ",&distance);   
+        get_int_value("Speed (mm/s): ",&speed);    
+        get_int_value("Acceleration (mm/s^2): ",&acceleration); 
+        get_int_value("Decceleration (mm/s^2): ",&decceleration);       
         goldo_asserv_straight_line(distance*1e-3,speed*1e-3,acceleration*1e-3,decceleration*1e-3);
         goldo_asserv_wait_finished();
       }          
@@ -192,8 +319,12 @@ int main_loop_test_asserv(void)
         goldo_asserv_wait_finished();
       }
       break;         
-      case 3:
-        return OK;
+      case 4:
+        tune_pid_distance();
+        break;
+      case 5:
+        tune_pid_heading();
+        break;
       default:
         break;
     }

@@ -22,6 +22,6 @@ typedef struct goldo_polyline_s
 
 int goldo_polyline_init(goldo_polyline_s* p, goldo_polyline_pt_s* points, int num_points);
 bool goldo_polyline_sample(goldo_polyline_s* p, float x, float* val, float* deriv, int* hint);/* hint is a pointer to the index of current segment*/
-int goldo_polyline_gen_trapezoidal_1(goldo_polyline_s* p, float x1, float y1, float y2, float speed, float accel, float deccel);
+int goldo_polyline_gen_trapezoidal_1(goldo_polyline_s* p, float x1, float y1, float y2, float speed, float accel, float deccel,float t_stabilize);
 
 #endif /* __GOLDO_POLYLINE_H_ */

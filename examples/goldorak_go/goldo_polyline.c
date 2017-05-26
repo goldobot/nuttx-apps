@@ -43,7 +43,7 @@ bool goldo_polyline_sample(goldo_polyline_s* p, float x, float* val, float* deri
   return true;  
 }
 
-int goldo_polyline_gen_trapezoidal_1(goldo_polyline_s* p, float x1, float y1, float y2, float speed, float accel, float deccel)
+int goldo_polyline_gen_trapezoidal_1(goldo_polyline_s* p, float x1, float y1, float y2, float speed, float accel, float deccel,float t_stabilize)
 {
   float distance = y2 > y1 ? y2 - y1 : y1 - y2;
   float d_a = (speed * speed) * 0.5f / accel;  
@@ -105,9 +105,19 @@ int goldo_polyline_gen_trapezoidal_1(goldo_polyline_s* p, float x1, float y1, fl
   pt->c2=-0.5f*deccel;
   pt->c3=0;
 
+  pt++;
+  cx += t_d;
+  cy += d_d;
+
+  pt->x = cx;
+  pt->c0= y2;
+  pt->c1=0;
+  pt->c2=0;
+  pt->c3=0;
+
   p->x_end = cx + t_d;
   p->y_end = y2;
-  p->num_points = 3;
+  p->num_points = 4;
 
   return OK;  
 }

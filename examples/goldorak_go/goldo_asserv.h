@@ -58,6 +58,11 @@ int goldo_asserv_wait(float t);
 /* Wait until all commands are finished or an error occurs*/
 GOLDO_ASSERV_STATE goldo_asserv_wait_finished(void);
 
+int goldo_asserv_get_distance_pid_values(float* k_p, float* k_i, float* k_d, float* lim_i, float* speed_ff);
+int goldo_asserv_set_distance_pid_values(float k_p, float k_i, float k_d, float lim_i, float speed_ff);
+int goldo_asserv_get_heading_pid_values(float* k_p, float* k_i, float* k_d, float* lim_i, float* speed_ff);
+int goldo_asserv_set_heading_pid_values(float k_p, float k_i, float k_d, float lim_i, float speed_ff);
+
 /* Internal functions
    arch_init and arch_release manage the realtime thread.
    do_step perform all computations */

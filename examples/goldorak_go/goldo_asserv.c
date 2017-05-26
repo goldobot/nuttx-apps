@@ -116,7 +116,7 @@ int goldo_asserv_init(void)
   goldo_pid_filter_set_config(&s_pid_distance,&pid_config_distance);
 
   goldo_pid_filter_config_s pid_config_heading;
-  pid_config_heading.k_p = 5;
+  pid_config_heading.k_p = 0;
   pid_config_heading.k_d = 0;
   pid_config_heading.k_i = 0;
   pid_config_heading.ff_speed = 0;
@@ -145,20 +145,18 @@ int goldo_asserv_quit(void)
 
 int goldo_asserv_enable(void)
 {
-  printf('goldo_asserv: enable asserv\n');
-  pthread_mutex_lock(&s_asserv_mutex);
-          g_asserv.asserv_state = ASSERV_STATE_STOPPED;
-          
-    if(g_asserv.asserv_state == ASSERV_STATE_DISABLED)
-    {
-      g_asserv.asserv_state = ASSERV_STATE_IDLE;
-      pthread_cond_broadcast(&s_asserv_cond);
-          pthread_mutex_unlock(&s_asserv_mutex);    
-      return OK;
-    }
+  printf("goldo_asserv: enable asserv\n");
+  pthread_mutex_lock(&s_asserv_mutex);          
+  if(g_asserv.asserv_state == ASSERV_STATE_DISABLED)
+  {
+    g_asserv.asserv_state = ASSERV_STATE_IDLE;
+    g_asserv.elapsed_distance_setpoint = g_odometry_state.elapsed_distance;
+    g_asserv.heading_change_setpoint = g_odometry_state.heading_change;
     pthread_cond_broadcast(&s_asserv_cond);
-          pthread_mutex_unlock(&s_asserv_mutex);
-  
+    pthread_mutex_unlock(&s_asserv_mutex);    
+    return OK;
+  }
+  pthread_mutex_unlock(&s_asserv_mutex);  
   return OK;  
 }
 
@@ -171,10 +169,11 @@ static void goldo_asserv_begin_command_straight_line(goldo_asserv_command_s* c)
     goldo_polyline_gen_trapezoidal_1(&s_poly_distance,
                                      g_asserv.elapsed_time_ms*1e-3,
                                      g_odometry_state.elapsed_distance,
-                                     c->distance,
+                                     g_odometry_state.elapsed_distance+c->distance,
                                      c->speed,
                                      c->acceleration,
-                                     c->decceleration);
+                                     c->decceleration,
+                                     1);
     s_poly_distance_index = 0;
 }
 
@@ -185,10 +184,11 @@ static void goldo_asserv_begin_command_rotation(goldo_asserv_command_s* c)
     goldo_polyline_gen_trapezoidal_1(&s_poly_heading,
                                      g_asserv.elapsed_time_ms*1e-3,
                                      g_odometry_state.heading_change,
-                                     c->distance,
+                                     g_odometry_state.heading_change+c->distance,
                                      c->speed,
                                      c->acceleration,
-                                     c->decceleration);
+                                     c->decceleration,
+                                     1);
     s_poly_heading_index = 0;
 }
 static void goldo_asserv_begin_command(goldo_asserv_command_s* c)
@@ -219,7 +219,7 @@ static bool goldo_asserv_update_command(goldo_asserv_command_s* c)
       if(!goldo_polyline_sample(&s_poly_distance,g_asserv.elapsed_time_ms*1e-3,
         &g_asserv.elapsed_distance_setpoint,&g_asserv.speed_setpoint,&s_poly_distance_index))
       {        
-        goldo_log(0,"goldo_asserv: end execute straight line\n");
+        goldo_log(0,"%f goldo_asserv: end execute straight line\n",g_asserv.elapsed_time_ms*1e-3);
         return true;
       }
     }
@@ -236,7 +236,12 @@ static bool goldo_asserv_update_command(goldo_asserv_command_s* c)
     }
     break;
     case GOLDO_ASSERV_COMMAND_WAIT:
-      return s_command_wait_end_time < g_asserv.elapsed_time_ms;
+      if(s_command_wait_end_time < g_asserv.elapsed_time_ms)
+      {
+        goldo_log(0,"%f goldo_asserv: end execute wait\n",g_asserv.elapsed_time_ms*1e-3);
+        return true;
+      }
+      break;
     
   }
 
@@ -509,4 +514,38 @@ int command_fifo_end_write(void)
   return OK;
 }
 
-int goldo_asserv_get_distance_pid_values(float* k_p, float* k_i, float* k_d, float* lim_i);
+int goldo_asserv_get_distance_pid_values(float* k_p, float* k_i, float* k_d, float* lim_i, float* speed_ff)
+{
+  *k_p = s_pid_distance.k_p;
+  *k_i = s_pid_distance.k_i;
+  *k_d = s_pid_distance.k_d;
+  *lim_i = s_pid_distance.lim_i;
+  *speed_ff = s_pid_distance.ff_speed;
+}
+
+int goldo_asserv_set_distance_pid_values(float k_p, float k_i, float k_d, float lim_i, float ff_speed)
+{
+  s_pid_distance.k_p = k_p;
+  s_pid_distance.k_i = k_i;
+  s_pid_distance.k_d = k_d;
+  s_pid_distance.lim_i = lim_i;
+  s_pid_distance.ff_speed = ff_speed;
+}
+
+int goldo_asserv_get_heading_pid_values(float* k_p, float* k_i, float* k_d, float* lim_i, float* speed_ff)
+{
+  *k_p = s_pid_heading.k_p;
+  *k_i = s_pid_heading.k_i;
+  *k_d = s_pid_heading.k_d;
+  *lim_i = s_pid_heading.lim_i;
+  *speed_ff = s_pid_heading.ff_speed;
+}
+
+int goldo_asserv_set_heading_pid_values(float k_p, float k_i, float k_d, float lim_i, float ff_speed)
+{
+  s_pid_heading.k_p = k_p;
+  s_pid_heading.k_i = k_i;
+  s_pid_heading.k_d = k_d;
+  s_pid_heading.lim_i = lim_i;
+  s_pid_heading.ff_speed = ff_speed;
+}
