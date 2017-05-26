@@ -537,6 +537,7 @@ int goldorak_go_main(int argc, char *argv[])
 #if 1 /* FIXME : DEBUG : HACK homologation 2017 */
   int start_gpio_state = 0;
   int obstacle_gpio_state = 0;
+  struct timeval tv0, tv1;
 
   start_gpio_state = goldo_get_start_gpio_state();
   printf ("start_gpio_state = %d\n", start_gpio_state);
@@ -555,6 +556,8 @@ int goldorak_go_main(int argc, char *argv[])
   homo_rot = strtol(argv[2], NULL, 10);
 
   while (start_gpio_state==0) start_gpio_state = goldo_get_start_gpio_state();
+
+  gettimeofday (&tv0, NULL);
 
   printf ("homo_trans = %d\n", homo_trans);
   printf ("homo_rot = %d\n", homo_rot);
@@ -723,6 +726,57 @@ int goldorak_go_main(int argc, char *argv[])
 
   printf("Finished\n");
   close(tim_fd);
+
+  while (1) {
+    gettimeofday (&tv1, NULL);
+    //printf(" tv1.tv_sec = %d\n", tv1.tv_sec);
+    //printf(" tv1.tv_usec = %d\n", tv1.tv_usec);
+
+    int delta_tv_sec;
+    int delta_tv_usec;
+
+    delta_tv_sec = tv1.tv_sec - tv0.tv_sec;
+    delta_tv_usec = delta_tv_sec*1000000 + (tv1.tv_usec - tv0.tv_usec);
+    //printf(" delta_tv_usec = %d\n", delta_tv_usec);
+    printf(" delta_tv_sec = %d\n", delta_tv_sec);
+
+    if (delta_tv_sec>90) {
+      int fd_funny = -1;
+      struct pwm_info_s info_funny;
+      int ret;
+
+      fd_funny = open("/dev/pwm8", O_RDONLY);
+      if (fd_funny < 0) {
+        printf("funny: open /dev/pwm8 failed: %d\n", errno);
+        exit(-1);
+      }
+
+      info_funny.frequency = 100;
+      info_funny.duty = 3000;
+
+      ret = ioctl(fd_funny,PWMIOC_SETCHARACTERISTICS,
+                  (unsigned long)((uintptr_t)&info_funny));
+      if (ret < 0) {
+        printf("funny: ioctl(PWMIOC_SETCHARACTERISTICS) failed: %d\n", errno);
+        exit(-1);
+      }
+
+      ret = ioctl(fd_funny, PWMIOC_START, 0);
+      if (ret < 0) {
+        printf("funny: ioctl(PWMIOC_START) failed: %d\n", errno);
+        exit(-1);
+      }
+
+      sleep (1);
+
+      (void)ioctl(fd_funny, PWMIOC_STOP, 0);
+      close(fd_funny);
+
+      break;
+    }
+
+    usleep (100000);
+  }
 
   fflush(stdout);
   return OK;
