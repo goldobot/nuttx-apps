@@ -4,6 +4,6 @@
 
 int goldo_adversary_detection_init(void);
 int goldo_adversary_detection_release(void);
-int goldo_aversary_detection_set_enable(bool enable);
+int goldo_adversary_detection_set_enable(bool enable);
 
 #endif /* __GOLDO_ADVERSARY_DETECTION_H__ */

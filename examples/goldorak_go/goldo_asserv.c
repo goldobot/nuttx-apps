@@ -25,7 +25,11 @@
 typedef enum GOLDO_ASSERV_COMMAND
 {
   GOLDO_ASSERV_COMMAND_STRAIGHT_LINE=0,
-  GOLDO_ASSERV_COMMAND_ROTATION=1
+  GOLDO_ASSERV_COMMAND_ROTATION=1,
+  GOLDO_ASSERV_COMMAND_WAIT=2,
+  GOLDO_ASSERV_COMMAND_GO_TO=3,
+  GOLDO_ASSERV_COMMAND_POINT_TO
+
 } GOLDO_ASSERV_COMMAND;
 
 typedef struct goldo_asserv_command_s
@@ -35,6 +39,9 @@ typedef struct goldo_asserv_command_s
   float speed;
   float acceleration;
   float decceleration;
+  float target_x;
+  float target_y;
+  float target_heading;
 } goldo_asserv_command_s;
 
 
@@ -47,17 +54,6 @@ typedef struct goldo_asserv_command_fifo_s
 
 } goldo_asserv_command_fifo_s;
 
-typedef struct goldo_trapezoid_profile_s
-{
-  float distance;
-  float speed;
-  float acceleration;
-  float decceleration;
-  float t_accel;
-  float d_accel;
-  float t_deccel;
-  float d_deccel;
-} goldo_trapezoid_profile_s;
 
 goldo_asserv_s g_asserv;
 goldo_asserv_command_fifo_s s_command_fifo;
@@ -83,9 +79,14 @@ static goldo_polyline_s s_poly_heading;
 static int s_poly_distance_index=0;
 static int s_poly_heading_index=0;
 
+uint32_t s_command_wait_end_time;
+
 /* PID filters */
 static goldo_pid_filter_s s_pid_distance;
 static goldo_pid_filter_s s_pid_heading;
+
+static float s_emergency_stop_dist;
+static float s_emergency_stop_speed;
 
 /*
   Support functions
@@ -108,11 +109,18 @@ int goldo_asserv_init(void)
   goldo_pid_filter_init(&s_pid_distance);
   goldo_pid_filter_init(&s_pid_heading);
   goldo_pid_filter_config_s pid_config_distance;
-  pid_config_distance.k_p = 10;
+  pid_config_distance.k_p = 5;
   pid_config_distance.k_d = 0;
   pid_config_distance.k_i = 0;
   pid_config_distance.ff_speed = 0;
   goldo_pid_filter_set_config(&s_pid_distance,&pid_config_distance);
+
+  goldo_pid_filter_config_s pid_config_heading;
+  pid_config_heading.k_p = 5;
+  pid_config_heading.k_d = 0;
+  pid_config_heading.k_i = 0;
+  pid_config_heading.ff_speed = 0;
+  goldo_pid_filter_set_config(&s_pid_heading,&pid_config_heading);
 
   /*Todo cleanup: init polyline pointers*/
   s_poly_distance.points = s_poly_distance_points;
@@ -185,6 +193,10 @@ static void goldo_asserv_begin_command(goldo_asserv_command_s* c)
     case GOLDO_ASSERV_COMMAND_ROTATION:
       goldo_asserv_begin_command_rotation(c);
       break;
+    case GOLDO_ASSERV_COMMAND_WAIT:
+      goldo_log(0,"%f goldo_asserv: begin execute wait\n",g_asserv.elapsed_time_ms*1e-3);
+      s_command_wait_end_time = g_asserv.elapsed_time_ms + (int)(c->distance*1000);
+      break;
   }
 }
 
@@ -215,6 +227,8 @@ static bool goldo_asserv_update_command(goldo_asserv_command_s* c)
       }
     }
     break;
+    case GOLDO_ASSERV_COMMAND_WAIT:
+      return s_command_wait_end_time < g_asserv.elapsed_time_ms;
     
   }
 
@@ -268,7 +282,31 @@ int goldo_asserv_do_step(int dt_ms)
       break;
     case ASSERV_STATE_EMERGENCY_STOP:
       {
-        
+        float d_s = dt_ms * 1e-3f*2;
+        if(s_emergency_stop_speed > d_s)
+        {
+          s_emergency_stop_speed -= d_s;
+        } 
+        else if(s_emergency_stop_speed < -d_s)
+        {
+          s_emergency_stop_speed += d_s;
+        } else
+        {
+          s_emergency_stop_speed =0;
+        }
+        s_emergency_stop_dist += s_emergency_stop_speed * dt_ms * 1e-3f;
+        g_asserv.elapsed_distance_setpoint = s_emergency_stop_dist;
+        g_asserv.speed_setpoint = s_emergency_stop_speed;
+        g_asserv.yaw_rate_setpoint = 0;
+        if(g_odometry_state.speed < 0.05 && g_odometry_state.speed > -0.05 )
+        {
+          goldo_log(0,"%f goldo_asserv: EMERGENCY_STOP->STOPPED\n",g_asserv.elapsed_time_ms*1e-3);
+          pthread_mutex_lock(&s_asserv_mutex);
+          g_asserv.asserv_state = ASSERV_STATE_STOPPED;
+          pthread_cond_broadcast(&s_asserv_cond);
+          pthread_mutex_unlock(&s_asserv_mutex);
+        }
+
       }
     default:
       break;
@@ -306,14 +344,32 @@ GOLDO_ASSERV_STATE goldo_asserv_wait_finished(void)
 
 int goldo_asserv_emergency_stop(void)
 {
-  goldo_log(0,"goldo_asserv: EMERGENCY_STOP\n");
+  goldo_log(0,"%f goldo_asserv: EMERGENCY_STOP\n",g_asserv.elapsed_time_ms*1e-3);
   pthread_mutex_lock(&s_asserv_mutex);
-  g_asserv.asserv_state = ASSERV_STATE_EMERGENCY_STOP;
+  if(g_asserv.asserv_state == ASSERV_STATE_MOVING)
+  {
+    g_asserv.asserv_state = ASSERV_STATE_EMERGENCY_STOP;
+    s_emergency_stop_speed = g_odometry_state.speed;
+    s_emergency_stop_dist = g_odometry_state.elapsed_distance;
+    command_fifo_clear();
+    pthread_cond_broadcast(&s_asserv_cond);
+  }  
+  pthread_mutex_unlock(&s_asserv_mutex);
+  return OK;
+}
+
+int goldo_asserv_match_finished(void)
+{
+  goldo_log(0,"%f goldo_asserv: MATCH_FINISHED\n",g_asserv.elapsed_time_ms*1e-3);
+  pthread_mutex_lock(&s_asserv_mutex);
+  g_asserv.asserv_state = ASSERV_STATE_MATCH_FINISHED;   
   command_fifo_clear();
   pthread_cond_broadcast(&s_asserv_cond);
   pthread_mutex_unlock(&s_asserv_mutex);
   return OK;
 }
+
+
 
 int goldo_asserv_straight_line(float distance, float speed, float accel, float deccel)
 {
@@ -353,6 +409,21 @@ int goldo_asserv_rotation(float heading_change, float yaw_rate, float angular_ac
   return OK;
 }
 
+int goldo_asserv_wait(float t)
+{
+  goldo_asserv_command_s* c = command_fifo_begin_write();
+  goldo_log(0,"goldo_asserv: enqueue wait\n");
+  if(c != NULL)
+  {
+    c->command = GOLDO_ASSERV_COMMAND_WAIT;
+    c->distance = t;    
+    command_fifo_end_write();
+  } else
+  {
+    goldo_log(0,"goldo_asserv: command fifo full\n");
+  }  
+  return OK;
+}
 /*********************************************************************
  * Command fifo functions.
  ********************************************************************/

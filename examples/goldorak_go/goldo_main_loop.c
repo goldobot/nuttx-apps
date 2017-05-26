@@ -5,6 +5,7 @@
 #include "goldo_asserv_hal.h"
 #include "goldo_odometry.h"
 #include "goldo_match_timer.h"
+#include "robot/goldo_adversary_detection.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -44,9 +45,14 @@ int main_loop_homologation(void)
   goldo_match_timer_start(90);
   
   goldo_asserv_straight_line(0.5, 0.5, 0.5, 0.5);
+  goldo_asserv_wait(0.5);
   goldo_asserv_rotation(M_PI * 0.5f, 0.5, 0.5, 0.5);
+   goldo_asserv_wait(0.5);
   goldo_asserv_straight_line(0.5, 0.5, 0.5, 0.5);
+  sleep(3);
+  goldo_asserv_emergency_stop();
   goldo_asserv_wait_finished();
+  sleep(5);
   /* STOP motors */
   return OK;
 }
@@ -107,5 +113,33 @@ int main_loop_test_asserv(void)
   goldo_asserv_wait_finished();
   sleep(10);
   printf("finished movement sequence\n");
+  return OK;
+}
+
+int main_loop_utest_start_match(void)
+{
+   /* Wait for start of match*/
+  printf("main_loop_utest_start_match: start main loop\n");
+  /*replace true by check on start gpio*/
+  goldo_robot_wait_for_match_begin();
+  printf("main_loop_utest_start_match: start match\n");
+  return OK;
+}
+
+int main_loop_utest_adversary_detection(void)
+{
+  goldo_adversary_detection_set_enable(true);
+  goldo_asserv_straight_line(0.2,0.01,0.5,0.5);
+  while(1)
+  {
+    usleep(100000);
+  }
+  return OK;
+}
+
+int main_loop_utest_match_timer(void)
+{
+  goldo_match_timer_start(10);
+  sleep(20);
   return OK;
 }

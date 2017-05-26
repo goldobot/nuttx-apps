@@ -165,6 +165,21 @@ static void parse_args(int argc, FAR char **argv)
     run_mode = GOLDO_MODE_TEST_ASSERV;
     return;
   }
+  if (strcmp(ptr,"utest_start_match")==0)
+  {
+    run_mode = GOLDO_MODE_UTEST_START_MATCH;
+    return;
+  }
+  if (strcmp(ptr,"utest_adversary_detection")==0)
+  {
+    run_mode = GOLDO_MODE_UTEST_ADVERSARY_DETECTION;
+    return;
+  }
+  if (strcmp(ptr,"utest_match_timer")==0)
+  {
+    run_mode = GOLDO_MODE_UTEST_MATCH_TIMER;
+    return;
+  }
 }
 
 
@@ -204,6 +219,15 @@ int goldorak_go_main(int argc, char *argv[])
       break;
     case GOLDO_MODE_TEST_MOTORS:
       main_loop_test_motors();
+      break;
+    case GOLDO_MODE_UTEST_START_MATCH:
+      main_loop_utest_start_match();
+      break;
+    case GOLDO_MODE_UTEST_ADVERSARY_DETECTION:
+      main_loop_utest_adversary_detection();
+      break;
+    case GOLDO_MODE_UTEST_MATCH_TIMER:
+      main_loop_utest_match_timer();
       break;
   }
   goldo_robot_release();

@@ -6,6 +6,9 @@
 #define GOLDO_MODE_TEST_ASSERV 3
 #define GOLDO_MODE_HOMOLOGATION 4
 #define GOLDO_MODE_TEST_MOTORS 5
+#define GOLDO_MODE_UTEST_START_MATCH 20
+#define GOLDO_MODE_UTEST_ADVERSARY_DETECTION 21
+#define GOLDO_MODE_UTEST_MATCH_TIMER 22
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -18,5 +21,9 @@ int main_loop_test_odometry(void);
 int main_loop_test_asserv(void);
 int main_loop_homologation(void);
 int main_loop_test_motors(void);
+
+int main_loop_utest_start_match(void);
+int main_loop_utest_adversary_detection(void);
+int main_loop_utest_match_timer(void);
 
 #endif /* __GOLDO_MAIN_LOOP_H__ */

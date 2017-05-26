@@ -48,9 +48,11 @@ int goldo_asserv_enable(void);
 
 /* Call on adversary detection to stop the robot.*/
 int goldo_asserv_emergency_stop(void);
+int goldo_asserv_match_finished(void);
 
 int goldo_asserv_straight_line(float distance, float speed, float accel, float deccel);
 int goldo_asserv_rotation(float heading_change,float yaw_rate, float angular_accel, float angular_deccel);
+int goldo_asserv_wait(float t);
 
 /* Wait until all commands are finished or an error occurs*/
 GOLDO_ASSERV_STATE goldo_asserv_wait_finished(void);
