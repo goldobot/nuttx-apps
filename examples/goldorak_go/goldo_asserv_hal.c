@@ -137,6 +137,7 @@ int goldo_asserv_hal_quit(void)
 
 int goldo_asserv_hal_set_motors_enable(bool left, bool right)
 {
+  printf("mot enable\n");
   if(left)
   {
     goldo_maxon2_en();
@@ -156,6 +157,7 @@ int goldo_asserv_hal_set_motors_enable(bool left, bool right)
 
 int goldo_asserv_hal_set_motors_pwm(int left, int right)
 {
+  printf("set pwm\n");
   goldo_maxon2_speed(left);
   goldo_maxon1_speed(right);
   return OK;

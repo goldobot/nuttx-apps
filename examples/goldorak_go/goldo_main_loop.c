@@ -79,12 +79,14 @@ int main_loop_test_motors(void)
     {
       case 1:
           printf("Input pwm (-60000,60000): ");
-          fgets(buffer,16,stdin);
+          fflush(stdout);
+          readline(buffer,32,stdin,stdout);
           sscanf(buffer,"%d",&pwm_left);
         break;
       case 2:
           printf("Input pwm (-60000,60000): ");
-          fgets(buffer,16,stdin);
+          fflush(stdout);
+          readline(buffer,32,stdin,stdout);
           sscanf(buffer,"%d",&pwm_right);
           break;         
       case 3:
@@ -121,6 +123,10 @@ int main_loop_test_asserv(void)
     command = 0;
     readline(buffer,32,stdin,stdout);
     sscanf(buffer,"%d",&command);
+    if(buffer[0] == 'q')
+    {
+      return OK;
+    }
 
     switch(command)
     {

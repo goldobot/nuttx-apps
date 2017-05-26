@@ -45,6 +45,7 @@ int goldo_asserv_quit(void);
 
 /* Enable control loop */
 int goldo_asserv_enable(void);
+int goldo_asserv_disable(void);
 
 /* Call on adversary detection to stop the robot.*/
 int goldo_asserv_emergency_stop(void);

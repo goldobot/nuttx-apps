@@ -102,7 +102,7 @@ int goldo_asserv_init(void)
   goldo_asserv_hal_init();
   goldo_asserv_hal_set_motors_enable(false, false);
   goldo_asserv_hal_set_motors_pwm(0, 0);
-  g_asserv.asserv_state = ASSERV_STATE_IDLE;
+  g_asserv.asserv_state = ASSERV_STATE_DISABLED;
 
 
   /* Initialize feedback loop values*/
@@ -145,11 +145,19 @@ int goldo_asserv_quit(void)
 
 int goldo_asserv_enable(void)
 {
+  printf('goldo_asserv: enable asserv\n');
+  pthread_mutex_lock(&s_asserv_mutex);
+          g_asserv.asserv_state = ASSERV_STATE_STOPPED;
+          
     if(g_asserv.asserv_state == ASSERV_STATE_DISABLED)
     {
-      g_asserv.asserv_state = ASSERV_STATE_IDLE;      
+      g_asserv.asserv_state = ASSERV_STATE_IDLE;
+      pthread_cond_broadcast(&s_asserv_cond);
+          pthread_mutex_unlock(&s_asserv_mutex);    
       return OK;
-    }    
+    }
+    pthread_cond_broadcast(&s_asserv_cond);
+          pthread_mutex_unlock(&s_asserv_mutex);
   
   return OK;  
 }
@@ -500,3 +508,5 @@ int command_fifo_end_write(void)
   pthread_mutex_unlock(&s_command_fifo.mutex);
   return OK;
 }
+
+int goldo_asserv_get_distance_pid_values(float* k_p, float* k_i, float* k_d, float* lim_i);
