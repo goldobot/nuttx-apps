@@ -3,6 +3,21 @@
 #include "../goldo_asserv.h"
 #include "../goldo_match_timer.h"
 
+#include <nuttx/config.h>
+
+#include <sys/types.h>
+#include <sys/ioctl.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <debug.h>
+#include <string.h>
+
+#include <nuttx/drivers/pwm.h>
+
 /* Hack */
 //Start : PB8
 //obstacle PB9
@@ -15,10 +30,14 @@ extern int goldo_get_obstacle_gpio_state(void);
 int goldo_robot_init(void)
 {
   goldo_odometry_config_s odometry_config;
-  odometry_config.dist_per_count_left = 0.5e-3f;
-  odometry_config.dist_per_count_right = 0.5e-3f;
-  odometry_config.wheel_spacing = 100e-3f;
+
+  /* Petit robot */
+  #if 1
+  odometry_config.dist_per_count_left = 0.481e-3f;
+  odometry_config.dist_per_count_right = 0.481e-3f;
+  odometry_config.wheel_spacing = 0.1856;
   odometry_config.update_period = 10e-3f;
+  #endif
 
   goldo_match_timer_init();
   goldo_odometry_init();
@@ -54,5 +73,28 @@ int goldo_robot_wait_for_match_begin(void)
 
 int goldo_robot_do_funny_action(void)
 {
+  int ret;
+  printf("goldo_robot: do funny action\n");
+  /* Open PWM driver */
+  struct pwm_info_s info;
+  int fd;
+  fd = open("/dev/pwm8", O_RDONLY);
+  if (fd < 0)
+  {
+    printf("pwm_main: open %s failed: %d\n", "/dev/pwm8", errno);
+    return ERROR;
+  }
+
+  info.duty = (50 << 16) / 100;
+  info.frequency = 10000;
+  ret = ioctl(fd, PWMIOC_SETCHARACTERISTICS, (unsigned long)((uintptr_t)&info));
+  if (ret < 0)
+  {
+    printf("goldorak_go_ioctl: LEFT : ioctl(PWMIOC_SETCHARACTERISTICS) failed: %d\n", errno);
+  }
+  ret = ioctl(fd, PWMIOC_START, 0);
+  usleep(1000000);
+  ret = ioctl(fd, PWMIOC_STOP, 0);
+  close(fd);
   return OK;
 }

@@ -65,7 +65,7 @@ int goldo_odometry_hal_release(void)
 
 int goldo_odometry_hal_read_encoders(int32_t* left, int32_t* right)
 {
-	ioctl(fd_qe_r, QEIOC_POSITION, (unsigned long)((uintptr_t)left));
-  ioctl(fd_qe_l, QEIOC_POSITION, (unsigned long)((uintptr_t)right));
+	ioctl(fd_qe_l, QEIOC_POSITION, (unsigned long)((uintptr_t)left));
+  ioctl(fd_qe_r, QEIOC_POSITION, (unsigned long)((uintptr_t)right));
   return OK;
 }

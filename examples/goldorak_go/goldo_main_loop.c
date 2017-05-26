@@ -25,10 +25,8 @@ int main_loop_match(void)
   goldo_robot_wait_for_match_begin();
   printf("main_loop_match: Start match\n");
   goldo_asserv_enable();
-  goldo_match_timer_start(90);
-  
-  goldo_asserv_straight_line(0.5, 0.5, 0.5, 0.5);
-  
+  goldo_match_timer_start(90);  
+  goldo_asserv_straight_line(0.5, 0.5, 0.5, 0.5);  
 
   /* STOP motors */
 
@@ -40,19 +38,23 @@ int main_loop_homologation(void)
   printf("main_loop_homologation: start main loop\n");
   /*replace true by check on start gpio*/
   goldo_robot_wait_for_match_begin();
-  printf("main_loop_homologation: Start match\n");
+  printf("main_loop_homologation: start match\n");
   goldo_asserv_enable();
-  goldo_match_timer_start(90);
+  goldo_match_timer_start(10);
   
-  goldo_asserv_straight_line(0.5, 0.5, 0.5, 0.5);
-  goldo_asserv_wait(0.5);
-  goldo_asserv_rotation(M_PI * 0.5f, 0.5, 0.5, 0.5);
-   goldo_asserv_wait(0.5);
-  goldo_asserv_straight_line(0.5, 0.5, 0.5, 0.5);
-  sleep(3);
-  goldo_asserv_emergency_stop();
-  goldo_asserv_wait_finished();
-  sleep(5);
+  goldo_asserv_straight_line(0.5, 0.1, 0.5, 0.5);
+  //goldo_asserv_wait(0.5);
+  //goldo_asserv_rotation(M_PI * 0.5f, 0.5, 0.5, 0.5);
+  //goldo_asserv_wait(0.5);
+  //goldo_asserv_straight_line(0.5, 0.5, 0.5, 0.5);
+  //sleep(3);
+  //goldo_asserv_emergency_stop();
+  //goldo_asserv_wait_finished();
+  while(!goldo_match_timer_is_finished())
+  {
+    usleep(100000);
+  }
+  goldo_robot_do_funny_action();
   /* STOP motors */
   return OK;
 }
@@ -97,7 +99,10 @@ int main_loop_test_odometry(void)
 {
   while(1)
   {
-    printf("encoders: %i,%i, %i\n", g_asserv.elapsed_time_ms,g_odometry_state.counts_left,g_odometry_state.counts_right);
+    printf("encoders:%i, %i pos: %i,%i heading:%i speed: %i\n", 
+      (int)g_odometry_state.counts_left,(int)g_odometry_state.counts_right,
+      (int)(g_odometry_state.pos_x*1000),(int)(g_odometry_state.pos_y*1000),(int)(g_odometry_state.heading*180/M_PI),
+      (int)(g_odometry_state.speed*1000));
     usleep(100000);
   }
   return OK;

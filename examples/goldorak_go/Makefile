@@ -48,6 +48,7 @@ CSRCS = goldo_asserv.c\
         goldo_polyline.c\
         goldo_match_timer.c\
         goldo_main_loop.c\
+        goldo_strategy.c\
         robot/robot.c\
         robot/arms.c\
         robot/adversary_detection.c \
