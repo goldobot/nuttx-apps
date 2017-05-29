@@ -323,7 +323,11 @@ static void *thread_asserv(void *arg)
     ioctl(fd_qe_l, QEIOC_POSITION, (unsigned long)((uintptr_t)&qe_l));
 
     robot_rc_val_1 = qe_r;
+#if 0 /* FIXME : TODO : REMOVE (code herite du PR 2016) */
     robot_rc_val_2 = qe_l * 0xffc / 0x1000;
+#else
+    robot_rc_val_2 = qe_l;
+#endif
 
     delta_rc_val_1 = robot_rc_val_1 - robot_rc_val_1_old;
     delta_rc_val_2 = robot_rc_val_2 - robot_rc_val_2_old;
@@ -547,13 +551,24 @@ int goldorak_go_main(int argc, char *argv[])
 
   int homo_trans = 0;
   int homo_rot = 0;
+  int homo_funny = 0;
 
+#if 0 /* FIXME : DEBUG : HACK homologation 2017 : PR */
   if (argc!=3) {
     printf ("Usage goldorak_go <homo_trans> <homo_rot>\n");
     exit (-1);
   }
   homo_trans = strtol(argv[1], NULL, 10);
   homo_rot = strtol(argv[2], NULL, 10);
+#else /* FIXME : DEBUG : HACK homologation 2017 : GR */
+  if (argc!=4) {
+    printf ("Usage goldorak_go <homo_trans> <homo_rot> <homo_funny>\n");
+    exit (-1);
+  }
+  homo_trans = strtol(argv[1], NULL, 10);
+  homo_rot = strtol(argv[2], NULL, 10);
+  homo_funny = strtol(argv[3], NULL, 10);
+#endif
 
   while (start_gpio_state==0) start_gpio_state = goldo_get_start_gpio_state();
 
@@ -741,6 +756,7 @@ int goldorak_go_main(int argc, char *argv[])
     printf(" delta_tv_sec = %d\n", delta_tv_sec);
 
     if (delta_tv_sec>90) {
+      int i;
       int fd_funny = -1;
       struct pwm_info_s info_funny;
       int ret;
@@ -751,8 +767,13 @@ int goldorak_go_main(int argc, char *argv[])
         exit(-1);
       }
 
+#if 0 /* FIXME : DEBUG : HACK homologation 2017 : PR */
       info_funny.frequency = 100;
       info_funny.duty = 3000;
+#else /* FIXME : DEBUG : HACK homologation 2017 : GR */
+      info_funny.frequency = 10000;
+      info_funny.duty = 0;
+#endif
 
       ret = ioctl(fd_funny,PWMIOC_SETCHARACTERISTICS,
                   (unsigned long)((uintptr_t)&info_funny));
@@ -767,7 +788,12 @@ int goldorak_go_main(int argc, char *argv[])
         exit(-1);
       }
 
-      sleep (1);
+      for (i=0; i<5; i++) {
+        info_funny.duty += homo_funny;
+        ret = ioctl(fd_funny,PWMIOC_SETCHARACTERISTICS,
+                    (unsigned long)((uintptr_t)&info_funny));
+        sleep (1);
+      }
 
       (void)ioctl(fd_funny, PWMIOC_STOP, 0);
       close(fd_funny);
