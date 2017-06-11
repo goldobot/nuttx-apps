@@ -111,14 +111,16 @@ int goldo_asserv_init(void)
   goldo_pid_filter_config_s pid_config_distance;
   pid_config_distance.k_p = 5;
   pid_config_distance.k_d = 0;
-  pid_config_distance.k_i = 0;
-  pid_config_distance.ff_speed = 0;
+  pid_config_distance.k_i = 1;
+  pid_config_distance.lim_i = 0.25;
+  pid_config_distance.ff_speed = 0.1;
   goldo_pid_filter_set_config(&s_pid_distance,&pid_config_distance);
 
   goldo_pid_filter_config_s pid_config_heading;
-  pid_config_heading.k_p = 0;
+  pid_config_heading.k_p = 2;
   pid_config_heading.k_d = 0;
-  pid_config_heading.k_i = 0;
+  pid_config_heading.k_i = 1;
+  pid_config_heading.lim_i = 0.25;
   pid_config_heading.ff_speed = 0;
   goldo_pid_filter_set_config(&s_pid_heading,&pid_config_heading);
 

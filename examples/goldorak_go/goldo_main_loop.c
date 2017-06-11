@@ -130,7 +130,7 @@ int main_loop_test_odometry(void)
 {
   while(1)
   {
-    printf("encoders:%i, %i pos: %i,%i heading:%i speed: %i\r", 
+    printf("encoders:%i, %i pos: %i,%i heading:%i speed: %i          \r", 
       (int)g_odometry_state.counts_left,(int)g_odometry_state.counts_right,
       (int)(g_odometry_state.pos_x*1000),(int)(g_odometry_state.pos_y*1000),(int)(g_odometry_state.heading*180/M_PI),
       (int)(g_odometry_state.speed*1000));
@@ -195,6 +195,8 @@ static int tune_pid_distance(void)
       case 'b':
         goldo_asserv_wait(20);
         goldo_asserv_wait_finished();
+      case 'q':
+        return OK;
     }
   }
 }
@@ -251,6 +253,8 @@ static int tune_pid_heading(void)
       case 'b':
         goldo_asserv_wait(20);
         goldo_asserv_wait_finished();
+      case 'q':
+        return OK;
     }
   }
 }
@@ -263,7 +267,7 @@ int main_loop_test_asserv(void)
   char buffer[32];
   while(1)
   {
-    printf("(1) Straight line\n(2) Rotation\n(4) Tune distance PID\n(q) Quit\n Enter command: \n");
+    printf("(1) Straight line\n(2) Rotation\n(4) Tune distance PID\n(5) Tune heading PID\n(q) Quit\n Enter command: \n");
     command = 0;
     readline(buffer,32,stdin,stdout);
     sscanf(buffer,"%d",&command);
@@ -365,4 +369,9 @@ int main_loop_utest_match_timer(void)
   goldo_match_timer_start(10);
   sleep(20);
   return OK;
+}
+
+int main_loop_utest_funny_action(void)
+{
+  goldo_robot_do_funny_action();
 }

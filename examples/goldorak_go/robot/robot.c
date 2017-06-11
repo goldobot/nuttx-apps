@@ -33,9 +33,9 @@ int goldo_robot_init(void)
 
   /* Petit robot */
   #if 1
-  odometry_config.dist_per_count_left = 0.481e-3f;
-  odometry_config.dist_per_count_right = 0.481e-3f;
-  odometry_config.wheel_spacing = 0.1856;
+  odometry_config.dist_per_count_left = -0.4025e-3f ;
+  odometry_config.dist_per_count_right = 0.3797e-3f;
+  odometry_config.wheel_spacing = 0.313213;
   odometry_config.update_period = 10e-3f;
   #endif
 
@@ -93,7 +93,7 @@ int goldo_robot_do_funny_action(void)
     printf("goldorak_go_ioctl: LEFT : ioctl(PWMIOC_SETCHARACTERISTICS) failed: %d\n", errno);
   }
   ret = ioctl(fd, PWMIOC_START, 0);
-  usleep(1000000);
+  usleep(10000000);
   ret = ioctl(fd, PWMIOC_STOP, 0);
   close(fd);
   return OK;

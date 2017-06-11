@@ -28,17 +28,17 @@ extern int goldo_odometry_hal_read_encoders(int* left, int* right);
 int goldo_odometry_hal_init(void)
 {
 	/* Open encoder devices */
-   fd_qe_r = open("/dev/qe0", O_RDONLY);
+   fd_qe_r = open("/dev/qe1", O_RDONLY);
   if (fd_qe_r < 0) 
     {
-      printf("init_devices: open %s failed: %d\n", "/dev/qe0", errno);
+      printf("init_devices: open %s failed: %d\n", "/dev/qe1", errno);
       goto errout;
     }
 
-  fd_qe_l = open("/dev/qe1", O_RDONLY);
+  fd_qe_l = open("/dev/qe0", O_RDONLY);
   if (fd_qe_l < 0) 
     {
-      printf("init_devices: open %s failed: %d\n", "/dev/qe1", errno);
+      printf("init_devices: open %s failed: %d\n", "/dev/qe0", errno);
       goto errout;
     }
 

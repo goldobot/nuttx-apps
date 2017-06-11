@@ -9,6 +9,7 @@
 #define GOLDO_MODE_UTEST_START_MATCH 20
 #define GOLDO_MODE_UTEST_ADVERSARY_DETECTION 21
 #define GOLDO_MODE_UTEST_MATCH_TIMER 22
+#define GOLDO_MODE_UTEST_FUNNY_ACTION 23
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -24,6 +25,7 @@ int main_loop_test_motors(void);
 
 int main_loop_utest_start_match(void);
 int main_loop_utest_adversary_detection(void);
-int main_loop_utest_match_timer(void);
+int main_loop_utest_match_timer(void);;
+int main_loop_utest_funny_action(void);
 
 #endif /* __GOLDO_MAIN_LOOP_H__ */

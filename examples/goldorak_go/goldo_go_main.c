@@ -180,6 +180,11 @@ static void parse_args(int argc, FAR char **argv)
     run_mode = GOLDO_MODE_UTEST_MATCH_TIMER;
     return;
   }
+  if (strcmp(ptr,"utest_funny_action")==0)
+  {
+    run_mode = GOLDO_MODE_UTEST_FUNNY_ACTION;
+    return;
+  }
 }
 
 
@@ -228,6 +233,9 @@ int goldorak_go_main(int argc, char *argv[])
       break;
     case GOLDO_MODE_UTEST_MATCH_TIMER:
       main_loop_utest_match_timer();
+      break;
+    case GOLDO_MODE_UTEST_FUNNY_ACTION:
+      main_loop_utest_funny_action();
       break;
   }
   goldo_robot_release();
