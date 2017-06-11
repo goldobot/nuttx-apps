@@ -136,6 +136,7 @@
 #define AX_OBSTACLE_DETECTION       32
 #define AX_BUZZER_INDEX             40
 #define SetPosition(id, pos) (ax12SetRegister2(id, AX_GOAL_POSITION_L, pos))
+#define GetPosition(id) (ax12GetRegister2(id, AX_GOAL_POSITION_L, 2))
 int fd = -1;
 
 unsigned char ax_rx_buffer[AX12_BUFFER_SIZE];
@@ -288,19 +289,53 @@ int main(int argc, FAR char *argv[])
 int dynamixel_main(int argc, char *argv[])
 #endif
 {
-  int pos = 1024;
+  int my_id = 0;
+  int my_pos = 1024;
 
   fd = open ("/dev/ttyS1", O_RDWR);
   if (fd<0) {
     return -1;
   }
 
-  if (argc>1) {
-    pos = atoi (argv[1]);
-  } 
-  printf ("pos = %d \n", pos);
+  if (argc>=3) {
+    my_id = atoi (argv[1]);
+    my_pos = atoi (argv[2]);
 
-  SetPosition (3, pos);
+    printf ("SET:\n");
+    printf ("my_id = %d \n", my_id);
+    printf ("my_pos = %d \n", my_pos);
+
+    SetPosition (my_id, my_pos);
+  } else if (argc>=2) {
+    my_id = atoi (argv[1]);
+
+    my_pos = GetPosition (my_id);
+    if (my_pos < 0) {
+      printf ("Error.");
+    } else {
+      printf ("GET:\n");
+      printf ("my_id = %d \n", my_id);
+      printf ("my_pos = %d \n", my_pos);
+    }
+  } else {
+    int i,ret;
+    printf ("usage <id> <new_pos>\n");
+
+#if 0
+    for (i=0; i<255; i++) {
+#if 0
+      ret = ax12GetRegister(i,AX_GOAL_POSITION_L,2);
+      printf (" %d : %d\n", i, ret);
+#else
+      SetPosition (i, 300);
+      printf (" %d\n", i);
+      usleep (100000);
+#endif
+    }
+#endif
+
+    return -1;
+  }
 
   return 0;
 }
