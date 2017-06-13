@@ -413,6 +413,41 @@ int dynamixel_main(int argc, char *argv[])
     int i,ret;
     printf ("usage <id> <new_pos>\n");
 
+    printf ("Bras droit:\n");
+    my_id = 1;
+    //my_pos = GetPosition (my_id);
+    //printf (" - mouv av-arr.(id:%d) : %d\n", my_id, my_pos);
+    printf (" - mouv av-arr.(id:%d) : ??\n", my_id);
+    my_id = 81;
+    my_pos = GetPosition (my_id);
+    printf (" - rot. bras(id:%d) : %d\n", my_id, my_pos);
+    my_id = 82;
+    my_pos = GetPosition (my_id);
+    printf (" - pivot epaule(id:%d) : %d\n", my_id, my_pos);
+    my_id = 2;
+    my_pos = GetPosition (my_id);
+    printf (" - pivot coude(id:%d) : %d\n", my_id, my_pos);
+    my_id = 3;
+    my_pos = GetPosition (my_id);
+    printf (" - pivot poigner(id:%d) : %d\n", my_id, my_pos);
+
+    printf ("Bras gauche:\n");
+    my_id = 4;
+    my_pos = GetPosition (my_id);
+    printf (" - mouv av-arr.(id:%d) : %d\n", my_id, my_pos);
+    my_id = 83;
+    my_pos = GetPosition (my_id);
+    printf (" - rot. bras(id:%d) : %d\n", my_id, my_pos);
+    my_id = 84;
+    my_pos = GetPosition (my_id);
+    printf (" - pivot epaule(id:%d) : %d\n", my_id, my_pos);
+    my_id = 5;
+    my_pos = GetPosition (my_id);
+    printf (" - pivot coude(id:%d) : %d\n", my_id, my_pos);
+    my_id = 6;
+    my_pos = GetPosition (my_id);
+    printf (" - pivot poigner(id:%d) : %d\n", my_id, my_pos);
+
 #if 0
     ax12SetRegister(254, AX_ID, 3);
 
