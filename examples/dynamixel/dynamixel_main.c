@@ -338,6 +338,11 @@ void ax12Action(int id){
     //ax12ReadPacket();
 }
 
+
+extern void goldo_pump1_speed(int32_t s);
+extern void goldo_pump2_speed(int32_t s);
+
+
 #ifdef CONFIG_BUILD_KERNEL
 int main(int argc, FAR char *argv[])
 #else
@@ -353,6 +358,18 @@ int dynamixel_main(int argc, char *argv[])
   }
 
   if (argc>=3) {
+    if (*argv[1] == 'D') {
+      my_pos = atoi (argv[2]);
+      printf ("pompe_droite = %d \n", my_pos);
+      goldo_pump1_speed(my_pos);
+      return 0;
+    } else if (*argv[1] == 'G') {
+      my_pos = atoi (argv[2]);
+      printf ("pompe_gauche = %d \n", my_pos);
+      goldo_pump2_speed(my_pos);
+      return 0;
+    }
+
     my_id = atoi (argv[1]);
 
     if (*argv[2] == 'e') {
