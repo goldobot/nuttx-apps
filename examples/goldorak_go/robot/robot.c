@@ -26,6 +26,7 @@
 extern int goldo_get_start_gpio_state(void);
 extern int goldo_get_obstacle_gpio_state(void);
 
+int goldo_dynamixels_init(void);
 
 int goldo_robot_init(void)
 {
@@ -43,6 +44,7 @@ int goldo_robot_init(void)
   goldo_odometry_init();
   goldo_odometry_set_config(&odometry_config); 
   goldo_asserv_init();
+  goldo_dynamixels_init();
   goldo_arms_init();
   goldo_adversary_detection_init();
 

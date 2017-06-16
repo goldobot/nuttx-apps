@@ -165,6 +165,16 @@ static void parse_args(int argc, FAR char **argv)
     run_mode = GOLDO_MODE_TEST_ASSERV;
     return;
   }
+  if (strcmp(ptr,"test_dynamixels")==0)
+  {
+    run_mode = GOLDO_MODE_TEST_DYNAMIXELS;
+    return;
+  }
+  if (strcmp(ptr,"test_arms")==0)
+  {
+    run_mode = GOLDO_MODE_TEST_ARMS;
+    return;
+  }
   if (strcmp(ptr,"utest_start_match")==0)
   {
     run_mode = GOLDO_MODE_UTEST_START_MATCH;
@@ -224,6 +234,12 @@ int goldorak_go_main(int argc, char *argv[])
       break;
     case GOLDO_MODE_TEST_MOTORS:
       main_loop_test_motors();
+      break;
+    case GOLDO_MODE_TEST_DYNAMIXELS:
+      main_loop_test_dynamixels();
+      break;
+    case GOLDO_MODE_TEST_ARMS:
+      main_loop_test_arms();
       break;
     case GOLDO_MODE_UTEST_START_MATCH:
       main_loop_utest_start_match();

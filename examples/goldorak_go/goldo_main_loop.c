@@ -19,8 +19,8 @@ int get_int_value(const char* prompt,int* val)
 {
   printf(prompt);
   fflush(stdout);
-  readline(s_input_buffer,32,stdin,stdout);
-  sscanf(s_input_buffer,"%i",val);
+  readline(s_input_buffer,32,stdin,stdout);  
+  sscanf(s_input_buffer,"%d",val); 
   return OK;
 }
 
@@ -374,4 +374,58 @@ int main_loop_utest_match_timer(void)
 int main_loop_utest_funny_action(void)
 {
   goldo_robot_do_funny_action();
+}
+
+
+int dynamixel_get_current_position(int id);
+int goldo_dynamixels_init(void);
+dynamixel_set_led(int id, int enable);
+void SetTorque(int id,int value);
+void SetPosition(int id,int pos);
+
+int main_loop_test_dynamixels(void)
+{
+  goldo_dynamixels_init();
+  int id;
+  int position;
+  char command;
+ 
+
+ while(1)
+  {
+    printf("Dynamixels test\n");    
+    printf("\n");
+    printf("Set position (s), Get position (g), Led(l), Torque (t), Quit (q)\n");
+    get_char_value("Command: ",&command);
+    switch(command)
+    {
+      case 'g':
+        get_int_value("Id: ",&id);
+        printf("Position: %i\n",dynamixel_get_current_position(id));
+        break;
+      case 's':
+        get_int_value("Id: ",&id);
+        get_int_value("Position: ",&position);
+        SetPosition(id,position);
+        break;
+      case 't':
+        get_int_value("Id: ",&id);
+        get_int_value("Torque: ",&position);
+        SetTorque(id,position);
+        break;
+      case 'l':
+        get_int_value("Id: ",&id);
+        get_int_value("Enable: ",&position);       
+        dynamixel_set_led(id,position);
+        break;
+      case 'q':
+        return OK;
+        break;
+    }
+  }
+}
+
+int main_loop_test_arms(void)
+{
+
 }

@@ -52,6 +52,7 @@ CSRCS = goldo_asserv.c\
         robot/robot.c\
         robot/arms.c\
         robot/adversary_detection.c \
+        dynamixel.c
         
 MAINSRC = goldo_go_main.c
 
