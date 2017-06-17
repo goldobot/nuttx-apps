@@ -3,6 +3,12 @@
 #include "goldo_arms.h"
 #include "goldo_adversary_detection.h"
 
+typedef enum GOLDO_BARREL_SIDE
+{
+	GOLDO_BARREL_LEFT,
+	GOLDO_BARREL_RIGHT
+} GOLDO_BARREL_SIDE;
+
 int goldo_robot_init(void);
 int goldo_barrels_init(void);
 

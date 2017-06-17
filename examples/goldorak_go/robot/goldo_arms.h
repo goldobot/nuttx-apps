@@ -24,6 +24,12 @@ int goldo_arms_init(void);
 int goldo_arms_release(void);
 
 /* add new functions*/
+int goldo_arms_set_enabled(GOLDO_ARM_SIDE side, bool enabled);
+int goldo_arms_move_to_position(GOLDO_ARM_SIDE side, int pos);
+int goldo_arms_grab_in_position(GOLDO_ARM_SIDE side, int pos);
+int goldo_arms_grab(GOLDO_ARM_SIDE side);
+int goldo_arms_drop(GOLDO_ARM_SIDE side);
 
-int goldo_arms_do_thing(GOLDO_ARM_SIDE side);
+int goldo_arms_init_barrels(void);
+int goldo_arms_move_barrel(int index);
 #endif /* __GOLDO_ARMS_H__ */

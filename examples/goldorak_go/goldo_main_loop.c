@@ -6,6 +6,8 @@
 #include "goldo_odometry.h"
 #include "goldo_match_timer.h"
 #include "robot/goldo_adversary_detection.h"
+#include "robot/goldo_arms.h"
+#include "goldo_dynamixels.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -381,21 +383,26 @@ int dynamixel_get_current_position(int id);
 int goldo_dynamixels_init(void);
 dynamixel_set_led(int id, int enable);
 void SetTorque(int id,int value);
-void SetPosition(int id,int pos);
+
+//void goldo_dynamixels_set_position(int id,int pos);
+//void goldo_dynamixels_set_position_sync(int id,int pos);
+//void goldo_dynamixels_do_action(int id);
+
+extern void goldo_pump1_speed(int32_t s);
 
 int main_loop_test_dynamixels(void)
 {
-  goldo_dynamixels_init();
   int id;
   int position;
   char command;
+
  
 
  while(1)
   {
     printf("Dynamixels test\n");    
     printf("\n");
-    printf("Set position (s), Get position (g), Led(l), Torque (t), Quit (q)\n");
+    printf("Set position (s), Get position (g), Led(l), Torque (t), Pump(p), Grab(G), Quit (q)\n");
     get_char_value("Command: ",&command);
     switch(command)
     {
@@ -406,7 +413,7 @@ int main_loop_test_dynamixels(void)
       case 's':
         get_int_value("Id: ",&id);
         get_int_value("Position: ",&position);
-        SetPosition(id,position);
+        goldo_dynamixels_set_position(id,position);
         break;
       case 't':
         get_int_value("Id: ",&id);
@@ -418,6 +425,15 @@ int main_loop_test_dynamixels(void)
         get_int_value("Enable: ",&position);       
         dynamixel_set_led(id,position);
         break;
+      case 'p':
+        get_char_value("Left(l), Right(r): ",&command);
+        get_int_value("PWM (1-65000): ",&position);  
+        goldo_pump2_speed(position);
+        break;
+      case 'G':
+        get_char_value("Left(l), Right(r): ",&command);
+        goldo_arms_grab(0);
+        break;
       case 'q':
         return OK;
         break;
@@ -427,5 +443,40 @@ int main_loop_test_dynamixels(void)
 
 int main_loop_test_arms(void)
 {
+  int position;
+  char command;
+  goldo_arms_set_enabled(0,true);
+  goldo_arms_init_barrels();
 
+ while(1)
+  {
+    printf("Arms test\n");    
+    printf("\n");
+    printf("Set position (s), Move Barrel (b), GRab in position(g), Grab(G), Drop(d), Quit (q)\n");
+    get_char_value("Command: ",&command);
+    switch(command)
+    {      
+      case 's':
+        get_int_value("Position: ",&position);
+        goldo_arms_move_to_position(GOLDO_ARM_LEFT,position);
+        break;
+      case 'b':
+        get_int_value("Position: ",&position);
+        goldo_arms_move_barrel(position);
+        break;
+      case 'g':
+        get_int_value("Position: ",&position);
+        goldo_arms_grab_in_position(GOLDO_ARM_LEFT,position);
+        break;
+      case 'd':
+        goldo_arms_drop(0);
+        break;
+      case 'G':
+        goldo_arms_grab(0);
+        break;
+      case 'q':
+        return OK;
+        break;
+    }
+  }
 }

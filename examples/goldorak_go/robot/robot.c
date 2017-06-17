@@ -73,6 +73,7 @@ int goldo_robot_wait_for_match_begin(void)
   return OK;
 }
 
+
 int goldo_robot_do_funny_action(void)
 {
   int ret;
@@ -87,7 +88,7 @@ int goldo_robot_do_funny_action(void)
     return ERROR;
   }
 
-  info.duty = (50 << 16) / 100;
+  info.duty = 50000;
   info.frequency = 10000;
   ret = ioctl(fd, PWMIOC_SETCHARACTERISTICS, (unsigned long)((uintptr_t)&info));
   if (ret < 0)

@@ -198,7 +198,7 @@ int ax12ReadPacket(int length){
         if(timeout) break;
         ax_rx_buffer[bcount] = ax_rx_int_buffer[bcount + offset];
 #else
-    usleep (100); /* cette tempo correspond grosso-modo a la transmission d'1 caractere a 1Mbaud (+ un peu de marge..) */
+    //usleep(10); /* cette tempo correspond grosso-modo a la transmission d'1 caractere a 1Mbaud (+ un peu de marge..) */
     if(read (fd, &c, 1)!=1) break; /* si la valeur retournee par la fonction 'read()' n'est pas 1 => il n'y + rien a lire */
         ax_rx_buffer[bcount] = c;
 #endif
@@ -208,9 +208,9 @@ int ax12ReadPacket(int length){
             bcount++;
     }
 
-    /*for (i=0; i<bcount; i++) {
-      printf ("recv : %.2x\n", ax_rx_buffer[i]);
-    }*/
+    for (i=0; i<bcount; i++) {
+      //printf ("recv : %.2x\n", ax_rx_buffer[i]);
+    }
 
     //blength = bcount;
     checksum = 0;
@@ -230,7 +230,7 @@ int ax12ReadPacket(int length){
 #endif
 }
 
-typedef struct dynamixel_packuet_header_s
+typedef struct dynamixel_packet_header_s
 {
     uint16_t magic;//0xFFFF
     uint8_t id;
@@ -256,18 +256,36 @@ static void dynamixel_write_packet(uint8_t id, uint8_t command, size_t length, c
 
 static int dynamixel_read_packet(size_t buffer_length, const char* buffer, uint8_t* error)
 {
-    dynamixel_packet_header_s header;
-
-    read(fd,&header,sizeof(header));
-    if(header.magic != 0xFFFF)
+    dynamixel_packet_header_s* header_ptr;
+    uint8_t c;
+    //Wait till the 2 start bytes are received.
+    int offset=0;
+    while(offset != 2)
     {
-        printf("goldo_dynamixel: bad start bytes in status packet\n");
+        if(read(fd,&c,1))
+        {
+            //\todo manage timeout
+            if(c == 0xFF)
+            {
+                ax_rx_buffer[offset] = c;
+                offset++;
+            } else
+            {
+                offset=0;
+            }            
+
+        } else
+        {
+            usleep(100);
+        }        
     }
-    uint8_t checksum;
-    read(fd,error,1);
-    read(fd,buffer,header.length-2);
-    read(fd,&checksum,1);
-    return header.length;
+
+    read(fd,ax_rx_buffer+offset,sizeof(dynamixel_packet_header_s)-2);
+    header_ptr = (dynamixel_packet_header_s*)(ax_rx_buffer);
+    read(fd,buffer+sizeof(dynamixel_packet_header_s),header_ptr->length);
+
+    uint8_t checksum;    
+    return header_ptr->length-2;
 
     //printf("Read packet , length: %i, error: %i\n", header.length);
    
@@ -295,7 +313,7 @@ void ax12SetRegister(int id, int regstart, int data){
     write(fd, &c, 1);
     // checksum =    
     write(fd, &c, 1);
-    ax12ReadPacket(length + 6);
+    ax12ReadPacket(6);
 }
 void ax12SetRegister2(int id, int regstart, int data){
     //setTX(id);
@@ -322,7 +340,7 @@ void ax12SetRegister2(int id, int regstart, int data){
     c=checksum;
     write(fd, &c, 1);
     //setRX(id);
-    //ax12ReadPacket();
+    ax12ReadPacket(6);
 }
 void ax12SetRegisterSync2(int id, int regstart, int data){
     //setTX(id);
@@ -350,7 +368,7 @@ void ax12SetRegisterSync2(int id, int regstart, int data){
     c=checksum;
     write(fd, &c, 1);
     //setRX(id);
-    //ax12ReadPacket();
+    ax12ReadPacket(6);
 }
 void ax12SetRegisterSync(int id, int regstart, int data){
     //setTX(id);
@@ -376,7 +394,7 @@ void ax12SetRegisterSync(int id, int regstart, int data){
     c=checksum;
     write(fd, &c, 1);
     //setRX(id);
-    //ax12ReadPacket();
+    ax12ReadPacket(6);
 }
 void ax12Action(void){
     
@@ -453,7 +471,7 @@ int dynamixel_set_led(int id, int enable)
     }
 
 void SetTorque(int id,int value){
-   ax12SetRegister2(id, AX_MAX_TORQUE_L, value); 
+   ax12SetRegister2(id, AX_TORQUE_LIMIT_L, value); 
    if(value>0) 
    {
     ax12SetRegister(id,AX_TORQUE_ENABLE,1);
@@ -469,6 +487,22 @@ void SetTorque(int id,int value){
 void SetPosition(int id,int pos) 
 {
     ax12SetRegister2(id, AX_GOAL_POSITION_L, pos);
+}
+
+void goldo_dynamixels_set_position(int id,int pos) 
+{
+    ax12SetRegister2(id, AX_GOAL_POSITION_L, pos);
+}
+
+void goldo_dynamixels_set_position_sync(int id,int pos)
+{
+    printf("goldo_dynamixels_set_position_sync: %i, %i\n",id,pos);
+    ax12SetRegisterSync2(id, AX_GOAL_POSITION_L, pos);
+}
+
+void goldo_dynamixels_do_action()
+{
+    ax12Action();
 }
 
 
