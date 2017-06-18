@@ -17,6 +17,32 @@
 
 static char s_input_buffer[32];
 
+typedef enum GOLDO_OPCODE
+{
+  GOP_MOVE_TO_WAYPOINT,
+  GOP_LOAD_CYLINDER_FROM_ROCKET,
+  GOP_DROP_CYLINDER_FRONT,
+  GOP_DROP_CYLINDER_FRONT_SWIPE
+} GOLDO_OPCODE;
+
+typedef struct goldo_waypoint_s
+{
+  float x;
+  float y;
+} goldo_waypoint_s;
+
+static goldo_waypoint_s s_waypoints[] = {
+  {90,2090},//yellow start against the border
+  {210,2090},//yellow start center of start area
+  {510,1924},
+  {350,1924},//yellow grab rocket position
+  {900,1924},
+  {900,2300},
+  {850,2400},
+  {850,2620}
+
+};
+
 int get_int_value(const char* prompt,int* val)
 {
   printf(prompt);
@@ -57,12 +83,92 @@ int main_loop_match(void)
   printf("main_loop_match: Start match\n");
   goldo_asserv_enable();
   goldo_match_timer_start(90);  
-  goldo_asserv_straight_line(0.5, 0.5, 0.5, 0.5);  
+  goldo_asserv_straight_line(0.5, 0.5, 0.5, 0.5);
 
   /* STOP motors */
 
 }
 
+void point_to(float x, float y)
+{
+  float dx = (x - g_odometry_state.pos_x);
+  float dy = (y - g_odometry_state.pos_y);
+  float direction = atan2(dy,dx);  
+  float delta = direction - g_odometry_state.heading;
+  if(delta>M_PI)
+  {
+    delta -= M_PI*2;
+  } else if(delta < -M_PI*2) 
+  {
+    delta += M_PI*2;
+  }
+   goldo_asserv_rotation(delta,M_PI/4,M_PI/4,M_PI/4);
+   goldo_asserv_wait(1.5);
+   goldo_asserv_wait_finished();  
+}
+
+void move_to(float x, float y, bool forward)
+{
+  float dx = (x - g_odometry_state.pos_x);
+  float dy = (y - g_odometry_state.pos_y);
+  float direction = atan2(dy,dx);
+  float distance = sqrt(dx*dx+dy*dy);
+  if(!forward)
+  {
+    distance *= -1;
+    direction += M_PI;
+    if(direction > M_PI)
+    {
+      direction -= 2*M_PI;
+    }
+  }
+  float delta = direction - g_odometry_state.heading;
+  
+  if(delta>M_PI)
+  {
+    delta -= M_PI*2;
+  } else if(delta < -M_PI*2) 
+  {
+    delta += M_PI*2;
+  }
+   goldo_asserv_rotation(delta,M_PI/4,M_PI/4,M_PI/4);
+   goldo_asserv_wait(0.5);
+   goldo_asserv_straight_line(distance,0.1,0.1,0.2);
+   goldo_asserv_wait(0.5);
+   goldo_asserv_wait_finished();  
+}
+
+void move_to_waypoint(int i, bool forward)
+{
+  move_to(s_waypoints[i].x*1e-3,s_waypoints[i].y*1e-3,forward);
+}
+
+int match_core(bool yellow)
+{
+  move_to_waypoint(1,true);
+  move_to_waypoint(2,true);
+  move_to_waypoint(3,true);
+   goldo_arms_grab_rocket_cylinder(GOLDO_ARM_LEFT);
+        goldo_arms_store_cylinder(GOLDO_ARM_LEFT);
+
+         goldo_arms_grab_rocket_cylinder(GOLDO_ARM_LEFT);
+        goldo_arms_store_cylinder(GOLDO_ARM_LEFT);
+
+         goldo_arms_grab_rocket_cylinder(GOLDO_ARM_LEFT);
+        goldo_arms_store_cylinder(GOLDO_ARM_LEFT);
+
+         goldo_arms_grab_rocket_cylinder(GOLDO_ARM_LEFT);
+        goldo_arms_store_cylinder(GOLDO_ARM_LEFT);
+
+        move_to_waypoint(4,true);
+        move_to_waypoint(5,true);
+        move_to_waypoint(6,true);
+        move_to_waypoint(6,true);
+        move_to_waypoint(7,true);
+        goldo_arms_load_cylinder(GOLDO_ARM_LEFT);
+        goldo_arms_drop_cylinder_front(GOLDO_ARM_LEFT);
+
+}
 int main_loop_homologation(void)
 {
   /* Wait for start of match*/
@@ -141,6 +247,8 @@ int main_loop_test_odometry(void)
   return OK;
 }
 
+goldo_asserv_trace_point_s asserv_trace_buffer[50];
+
 static int tune_pid_distance(void)
 {
   
@@ -160,7 +268,7 @@ static int tune_pid_distance(void)
     printf("Integrator limit: %f\n",i_limit);
     printf("Feedforward speed: %f\n",speed_ff);
     printf("\n");
-    printf("Set (p), Set(i), Set (d), Set(l), Set (f), Test (t,T), BLock (b), Quit (q)\n");
+    printf("Set (p), Set(i), Set (d), Set(l), Set (f), Test (t,T,s), BLock (b), Quit (q)\n");
     get_char_value("Command: ",&command);
     switch(command)
     {
@@ -186,13 +294,49 @@ static int tune_pid_distance(void)
         break;
       case 't':
         goldo_asserv_straight_line(0.1,0.2,0.5,0.5);
+        goldo_asserv_wait_finished();
+        sleep(1);
         goldo_asserv_straight_line(-0.1,0.2,0.5,0.5);
         goldo_asserv_wait_finished();
         break;
       case 'T':
-        goldo_asserv_straight_line(0.3,0.2,0.5,0.5);
-        goldo_asserv_straight_line(-0.3,0.2,0.5,0.5);
+        goldo_asserv_start_trace(asserv_trace_buffer,50,10);
+        goldo_asserv_straight_line(0.5,0.2,0.2,0.2);
+        goldo_asserv_wait(1);
+        goldo_asserv_straight_line(-0.5,0.2,0.2,0.2);        
         goldo_asserv_wait_finished();
+        for(int i=0;i<50;i++)
+        {
+          printf("%i,%i,%i,%i,%i\t",
+           (int)(asserv_trace_buffer[i].elapsed_distance_setpoint*1000),
+           (int)(asserv_trace_buffer[i].elapsed_distance*1000),
+           (int)(asserv_trace_buffer[i].speed_setpoint*1000),
+           (int)(asserv_trace_buffer[i].speed*1000),
+           (int)((asserv_trace_buffer[i].motor_pwm_left+asserv_trace_buffer[i].motor_pwm_right)*50));
+          if(i%5 == 0)
+          {
+            printf("\n");
+          }
+        }
+        break;
+      case 's':
+        goldo_asserv_start_trace(asserv_trace_buffer,50,10);
+        goldo_asserv_position_step(0.2);
+        goldo_asserv_wait(5);
+        goldo_asserv_wait_finished();
+        for(int i=0;i<50;i++)
+        {
+          printf("%i,%i,%i,%i,%i\t",
+           (int)(asserv_trace_buffer[i].elapsed_distance_setpoint*1000),
+           (int)(asserv_trace_buffer[i].elapsed_distance*1000),
+           (int)(asserv_trace_buffer[i].speed_setpoint*1000),
+           (int)(asserv_trace_buffer[i].speed*1000),
+           (int)((asserv_trace_buffer[i].motor_pwm_left+asserv_trace_buffer[i].motor_pwm_right)*50));
+          if(i%5 == 0)
+          {
+            printf("\n");
+          }
+        }
         break;
       case 'b':
         goldo_asserv_wait(20);
@@ -248,9 +392,42 @@ static int tune_pid_heading(void)
         goldo_asserv_set_heading_pid_values(k_p,k_i,k_d,i_limit,speed_ff);
         break;
       case 't':
-        goldo_asserv_rotation(M_PI*0.5,0.2,0.5,0.5);
-        goldo_asserv_rotation(-M_PI*0.5,0.2,0.5,0.5);
-        goldo_asserv_wait_finished();  
+        goldo_asserv_start_trace(asserv_trace_buffer,50,10);
+        goldo_asserv_rotation(M_PI,0.2,0.2,0.2);
+        goldo_asserv_rotation(-M_PI,0.2,0.2,0.2);
+        goldo_asserv_wait_finished();
+        for(int i=0;i<50;i++)
+        {
+          printf("%i,%i,%i,%i,%i\t",
+           (int)(asserv_trace_buffer[i].heading_change_setpoint*180/M_PI),
+           (int)(asserv_trace_buffer[i].heading_change*180/M_PI),
+           (int)(asserv_trace_buffer[i].yaw_rate_setpoint*180/M_PI),
+           (int)(asserv_trace_buffer[i].yaw_rate*180/M_PI),
+           (int)((asserv_trace_buffer[i].motor_pwm_right-asserv_trace_buffer[i].motor_pwm_left)*50));
+          if(i%5 == 0)
+          {
+            printf("\n");
+          }
+        }
+        break;
+      case 's':
+        goldo_asserv_start_trace(asserv_trace_buffer,50,10);
+        goldo_asserv_heading_step(90*M_PI/180);
+        goldo_asserv_wait(5);
+        goldo_asserv_wait_finished();
+        for(int i=0;i<50;i++)
+        {
+          printf("%i,%i,%i,%i,%i\t",
+          (int)(asserv_trace_buffer[i].heading_change_setpoint*180/M_PI),
+           (int)(asserv_trace_buffer[i].heading_change*180/M_PI),
+           (int)(asserv_trace_buffer[i].yaw_rate_setpoint*180/M_PI),
+           (int)(asserv_trace_buffer[i].yaw_rate*180/M_PI),
+           (int)((asserv_trace_buffer[i].motor_pwm_right-asserv_trace_buffer[i].motor_pwm_left)*50));
+          if(i%5 == 0)
+          {
+            printf("\n");
+          }
+        }
         break;
       case 'b':
         goldo_asserv_wait(20);
@@ -269,7 +446,7 @@ int main_loop_test_asserv(void)
   char buffer[32];
   while(1)
   {
-    printf("(1) Straight line\n(2) Rotation\n(4) Tune distance PID\n(5) Tune heading PID\n(q) Quit\n Enter command: \n");
+    printf("(1) Straight line\n(2) Rotation\n(4) Tune distance PID\n(5) Tune heading PID\n(6) Recalage\n (7) Switch\n(q) Quit\n Enter command: \n");
     command = 0;
     readline(buffer,32,stdin,stdout);
     sscanf(buffer,"%d",&command);
@@ -331,6 +508,25 @@ int main_loop_test_asserv(void)
       case 5:
         tune_pid_heading();
         break;
+      case 6:
+      {
+        float pwm;
+        get_float_value("PWM: ",&pwm);
+        goldo_asserv_recalage(pwm);
+      }
+      break;
+      case 7:
+      {
+        int en=0;
+        get_int_value("Enabled: ",&en);
+        if(en)
+        {
+          goldo_asserv_enable();
+        } else
+        {
+          goldo_asserv_disable();
+        }
+      }
       default:
         break;
     }
@@ -344,6 +540,123 @@ int main_loop_test_asserv(void)
   printf("finished movement sequence\n");
   return OK;
 }
+
+
+int main_loop_test_match(void)
+{
+  goldo_asserv_enable();
+  goldo_arms_start_match();
+  goldo_odometry_set_position(s_waypoints[0].x*1e-3,s_waypoints[0].y*1e-3,0);
+  int command=0;  
+  while(1)
+  {
+    printf("(1) Set position\n (q) Quit\n Enter command: \n");
+    printf("(2) Move to\n");
+    printf("(3) Point to\n");
+    printf("(4) Grab cylinder from rocket\n");
+    printf("(5) Drop cylinder in front\n");
+    printf("(6) Straight line\n");
+    printf("(7) Rotation line\n");
+    printf("(8) Show odometry\n");
+    printf("(9) Position arm\n");
+    printf("(a) Move to waypoint\n");
+    command = 0;
+    get_char_value("Command: ",&command);
+    switch(command)
+    {
+      case '1':
+      {
+        int x,y,heading;        
+        get_int_value("Pos x (mm): ",&x);   
+        get_int_value("Pos y (mm): ",&y);    
+        get_int_value("Heading (deg): ",&heading); 
+        goldo_odometry_set_position(x*1e-3,y*1e-3,heading*M_PI/180);
+      }          
+      break;
+      case '2':
+      {
+        int x,y;        
+        get_int_value("Pos x (mm): ",&x);   
+        get_int_value("Pos y (mm): ",&y);
+        move_to(x*1e-3,y*1e-3,true);
+      }
+      break;
+      case '3':
+      {
+        int x,y;        
+        get_int_value("Pos x (mm): ",&x);   
+        get_int_value("Pos y (mm): ",&y);
+        point_to(x*1e-3,y*1e-3);
+      }
+      break;
+
+      case '6':
+      {
+        int distance;
+        get_int_value("Distance x (mm): ",&distance);
+        goldo_asserv_straight_line(distance*1e-3,0.2,0.2,0.2); 
+        goldo_asserv_wait_finished(); 
+      }
+      break;    
+      case '7':
+      {
+        int angle;
+        get_int_value("Angle x (deg): ",&angle);
+        goldo_asserv_rotation(angle*M_PI/180,M_PI/2,M_PI/2,M_PI/2);
+        goldo_asserv_wait_finished(); 
+      }
+      break;
+      case '8':
+        printf("(x,y,heading) = %i,%i,%i\n",(int)(g_odometry_state.pos_x*1e3),(int)(g_odometry_state.pos_y*1e3),(int)(g_odometry_state.heading*180/M_PI));
+        break; 
+      case '9':
+      {
+        int pos;
+        get_int_value("Position (id): ",&pos);
+        goldo_arms_move_to_position(GOLDO_ARM_LEFT,pos);
+      }
+      break; 
+       case 'a':
+      {
+        int id;
+        get_int_value("Waypoint (id): ",&id);
+        move_to(s_waypoints[id].x*1e-3,s_waypoints[id].y*1e-3,true);
+      }
+      break;
+      case 'f':
+        goldo_robot_do_funny_action();
+        break;
+      case '5':
+        goldo_arms_load_cylinder(GOLDO_ARM_LEFT);
+        goldo_arms_drop_cylinder_front_swipe(GOLDO_ARM_LEFT);
+        break;
+        break;
+      case '4':
+        goldo_arms_grab_rocket_cylinder(GOLDO_ARM_LEFT);
+        goldo_arms_store_cylinder(GOLDO_ARM_LEFT);
+        break;
+      case 5:
+        tune_pid_heading();
+        break;
+        case 'm':
+        match_core(true);
+        break;
+      case 'q':
+        return OK;
+      default:
+        break;
+    }
+  }
+
+  goldo_asserv_straight_line(0.5, 0.5, 0.5, 0.5);
+  goldo_asserv_straight_line(-0.5, 0.5, 0.5, 0.5);
+   getchar();
+  goldo_asserv_wait_finished();
+  sleep(10);
+  printf("finished movement sequence\n");
+  return OK;
+}
+
 
 int main_loop_utest_start_match(void)
 {
@@ -381,7 +694,7 @@ int main_loop_utest_funny_action(void)
 
 int dynamixel_get_current_position(int id);
 int goldo_dynamixels_init(void);
-dynamixel_set_led(int id, int enable);
+void dynamixel_set_led(int id, int enable);
 void SetTorque(int id,int value);
 
 //void goldo_dynamixels_set_position(int id,int pos);
@@ -445,14 +758,13 @@ int main_loop_test_arms(void)
 {
   int position;
   char command;
-  goldo_arms_set_enabled(0,true);
-  goldo_arms_init_barrels();
+  goldo_arms_start_match();
 
  while(1)
   {
     printf("Arms test\n");    
     printf("\n");
-    printf("Set position (s), Move Barrel (b), GRab in position(g), Grab(G), Drop(d), Quit (q)\n");
+    printf("Set position (s), Move Barrel (b), Grab in position(g), Grab(G), Drop(d), Quit (q)\n");
     get_char_value("Command: ",&command);
     switch(command)
     {      
@@ -473,6 +785,24 @@ int main_loop_test_arms(void)
         break;
       case 'G':
         goldo_arms_grab(0);
+        break;
+      case '1':
+        goldo_arms_goto_rest_position(GOLDO_ARM_LEFT);
+        break;
+      case '2':
+        goldo_arms_grab_rocket_cylinder(GOLDO_ARM_LEFT);
+        break;
+      case '3':
+        goldo_arms_store_cylinder(GOLDO_ARM_LEFT);
+        break;
+      case '4':
+        goldo_arms_load_cylinder(GOLDO_ARM_LEFT);
+        break;
+      case '5':
+        goldo_arms_drop_cylinder_front(GOLDO_ARM_LEFT);
+        break;
+      case '6':
+        goldo_arms_drop_cylinder_front_swipe(GOLDO_ARM_LEFT);
         break;
       case 'q':
         return OK;

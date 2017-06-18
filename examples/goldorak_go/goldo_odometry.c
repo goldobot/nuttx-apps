@@ -72,6 +72,7 @@ int goldo_odometry_update(void)
   g_odometry_state.elapsed_distance += d_dist;
   /* todo add config option for speed low pass filter frequency*/
   g_odometry_state.speed = g_odometry_state.speed * 0.9f + d_dist * update_frequency * 0.1f;
+  g_odometry_state.yaw_rate = g_odometry_state.yaw_rate * 0.9f + d_heading * update_frequency * 0.1f;
   g_odometry_state.heading_change += d_heading;
 
   /* Update position */
@@ -82,6 +83,13 @@ int goldo_odometry_update(void)
   g_odometry_state.speed_x = g_odometry_state.speed * cos_h;
   g_odometry_state.speed_y = g_odometry_state.speed * sin_h;
   g_odometry_state.heading += d_heading;
+  if(g_odometry_state.heading > M_PI)
+  {
+    g_odometry_state.heading -= 2* M_PI;
+  } else if(g_odometry_state.heading < - M_PI)
+  {
+    g_odometry_state.heading += 2*M_PI;
+  }
   return OK;
 }
 

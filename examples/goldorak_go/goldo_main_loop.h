@@ -8,6 +8,7 @@
 #define GOLDO_MODE_TEST_MOTORS 5
 #define GOLDO_MODE_TEST_DYNAMIXELS 6
 #define GOLDO_MODE_TEST_ARMS 7
+#define GOLDO_MODE_TEST_MATCH 8
 #define GOLDO_MODE_UTEST_START_MATCH 20
 #define GOLDO_MODE_UTEST_ADVERSARY_DETECTION 21
 #define GOLDO_MODE_UTEST_MATCH_TIMER 22
@@ -26,7 +27,7 @@ int main_loop_homologation(void);
 int main_loop_test_motors(void);
 int main_loop_test_dynamixels(void);
 int main_loop_test_arms(void);
-
+int main_loop_test_match(void);
 int main_loop_utest_start_match(void);
 int main_loop_utest_adversary_detection(void);
 int main_loop_utest_match_timer(void);;

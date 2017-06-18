@@ -44,7 +44,7 @@ int goldo_pid_filter_do_step(goldo_pid_filter_s* s,float dt, float pos,float spe
 	s->integrator += (s->tar_pos - pos) * dt * s->k_i;
 	if(s->integrator > s->lim_i) s->integrator = s->lim_i;
 	if(s->integrator < -s->lim_i) s->integrator = -s->lim_i;
-	*out= (s->tar_pos - pos) * s->k_p + (s->tar_speed - speed) * s->k_d + speed * s->ff_speed + s->integrator;
+	*out= (s->tar_pos - pos) * s->k_p + (s->tar_speed - speed) * s->k_d + s->tar_speed * s->ff_speed + s->integrator;
 
 	return OK;
 }

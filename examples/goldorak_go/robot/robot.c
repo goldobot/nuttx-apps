@@ -33,10 +33,16 @@ int goldo_robot_init(void)
   goldo_odometry_config_s odometry_config;
 
   /* Petit robot */
-  #if 1
+  #if 0
   odometry_config.dist_per_count_left = -0.4025e-3f ;
   odometry_config.dist_per_count_right = 0.3797e-3f;
   odometry_config.wheel_spacing = 0.313213;
+  odometry_config.update_period = 10e-3f;
+  #endif
+  #if 1 //calib goldo
+  odometry_config.dist_per_count_left = -0.383204e-3f ;
+  odometry_config.dist_per_count_right = 0.379943e-3f;
+  odometry_config.wheel_spacing = 0.307566;
   odometry_config.update_period = 10e-3f;
   #endif
 
@@ -73,6 +79,7 @@ int goldo_robot_wait_for_match_begin(void)
   return OK;
 }
 
+static int s_funny_action_ramp[] = {40000,45000,50000,52500,55000,57500,60000,62500,65000,55000,40000,0,-1};
 
 int goldo_robot_do_funny_action(void)
 {
@@ -87,8 +94,8 @@ int goldo_robot_do_funny_action(void)
     printf("pwm_main: open %s failed: %d\n", "/dev/pwm8", errno);
     return ERROR;
   }
-
-  info.duty = 50000;
+ 
+  info.duty = 30000;
   info.frequency = 10000;
   ret = ioctl(fd, PWMIOC_SETCHARACTERISTICS, (unsigned long)((uintptr_t)&info));
   if (ret < 0)
@@ -96,7 +103,14 @@ int goldo_robot_do_funny_action(void)
     printf("goldorak_go_ioctl: LEFT : ioctl(PWMIOC_SETCHARACTERISTICS) failed: %d\n", errno);
   }
   ret = ioctl(fd, PWMIOC_START, 0);
-  usleep(10000000);
+  int i=0;
+  while(s_funny_action_ramp[i] >0)
+  {
+    info.duty = s_funny_action_ramp[i];
+    ret = ioctl(fd, PWMIOC_SETCHARACTERISTICS, (unsigned long)((uintptr_t)&info));
+    usleep(500000);
+    i++;
+  }
   ret = ioctl(fd, PWMIOC_STOP, 0);
   close(fd);
   return OK;

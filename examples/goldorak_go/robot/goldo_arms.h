@@ -32,4 +32,12 @@ int goldo_arms_drop(GOLDO_ARM_SIDE side);
 
 int goldo_arms_init_barrels(void);
 int goldo_arms_move_barrel(int index);
+
+int goldo_arms_start_match(void);
+int goldo_arms_goto_rest_position(GOLDO_ARM_SIDE side);
+int goldo_arms_grab_rocket_cylinder(GOLDO_ARM_SIDE side);
+int goldo_arms_store_cylinder(GOLDO_ARM_SIDE side);
+int goldo_arms_load_cylinder(GOLDO_ARM_SIDE side);
+int goldo_arms_drop_cylinder_front(GOLDO_ARM_SIDE side);
+int goldo_arms_drop_cylinder_front_swipe(GOLDO_ARM_SIDE side);
 #endif /* __GOLDO_ARMS_H__ */

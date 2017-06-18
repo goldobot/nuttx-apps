@@ -38,6 +38,20 @@ typedef struct goldo_asserv_s
   float motor_pwm_right;
 }  goldo_asserv_s;
 
+typedef struct goldo_asserv_trace_point_s
+{
+  float elapsed_distance;
+  float heading_change;
+  float speed;
+  float yaw_rate;
+  float elapsed_distance_setpoint;
+  float speed_setpoint;
+  float heading_change_setpoint;
+  float yaw_rate_setpoint;
+  float motor_pwm_left;
+  float motor_pwm_right;
+} goldo_asserv_trace_point_s;
+
 extern goldo_asserv_s g_asserv;
 
 int goldo_asserv_init(void);
@@ -53,7 +67,10 @@ int goldo_asserv_match_finished(void);
 
 int goldo_asserv_straight_line(float distance, float speed, float accel, float deccel);
 int goldo_asserv_rotation(float heading_change,float yaw_rate, float angular_accel, float angular_deccel);
+int goldo_asserv_position_step(float distance);
+int goldo_asserv_heading_step(float angle);
 int goldo_asserv_wait(float t);
+int goldo_asserv_recalage(float pwm);
 
 /* Wait until all commands are finished or an error occurs*/
 GOLDO_ASSERV_STATE goldo_asserv_wait_finished(void);
@@ -70,5 +87,7 @@ int goldo_asserv_set_heading_pid_values(float k_p, float k_i, float k_d, float l
 int goldo_asserv_arch_init(void);
 int goldo_asserv_arch_release(void);
 int goldo_asserv_do_step(int dt_ms);
+
+int goldo_asserv_start_trace(goldo_asserv_trace_point_s* buffer, int size, int divider);
 
 #endif /* __ASSERV_THOMAS_H__ */

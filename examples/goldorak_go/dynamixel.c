@@ -296,7 +296,7 @@ void ax12SetRegister(int id, int regstart, int data){
     int length = 4;
     int checksum = ~((id + length + AX_WRITE_DATA + regstart + (data&0xFF)) % 256);
     char c;
-    printf("Data sent :%d, reg :%d \n",data,regstart);
+    //printf("Data sent :%d, reg :%d \n",data,regstart);
     c=0xFF;
     write(fd, &c, 1);
     c=0xFF;
@@ -496,7 +496,7 @@ void goldo_dynamixels_set_position(int id,int pos)
 
 void goldo_dynamixels_set_position_sync(int id,int pos)
 {
-    printf("goldo_dynamixels_set_position_sync: %i, %i\n",id,pos);
+    //printf("goldo_dynamixels_set_position_sync: %i, %i\n",id,pos);
     ax12SetRegisterSync2(id, AX_GOAL_POSITION_L, pos);
 }
 
