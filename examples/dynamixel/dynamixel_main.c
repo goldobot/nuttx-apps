@@ -135,7 +135,15 @@
 #define AX_RIGHT_LUMINOSITY         31
 #define AX_OBSTACLE_DETECTION       32
 #define AX_BUZZER_INDEX             40
+void ax12SetRegister(int id, int regstart, int data);
 #define SetPosition(id, pos) (ax12SetRegister2(id, AX_GOAL_POSITION_L, pos))
+#define GetPosition(id) (ax12GetRegister2(id, AX_PRESENT_POSITION_L, 2))
+#define GetGoalPosition(id) (ax12GetRegister2(id, AX_GOAL_POSITION_L, 2))
+#define GetMaxTorque(id) (ax12GetRegister2(id, AX_MAX_TORQUE_L, 2))
+#define GetTorqueLimit(id) (ax12GetRegister2(id, AX_TORQUE_LIMIT_L, 2))
+#define TorqueEnable(id) (ax12SetRegister(id, AX_TORQUE_ENABLE, 1))
+#define TorqueDisable(id) (ax12SetRegister(id, AX_TORQUE_ENABLE, 0))
+
 int fd = -1;
 
 unsigned char ax_rx_buffer[AX12_BUFFER_SIZE];
@@ -183,6 +191,32 @@ int ax12ReadPacket(int length){
     }else{
         return 1;
     }
+}
+void ax12SetRegister(int id, int regstart, int data){
+    //setTX(id);
+    int length = 4;
+    int checksum = ~((id + length + AX_WRITE_DATA + regstart + (data&0xFF)) % 256);
+    char c;
+    //printf("Data sent :%d, reg :%d \n",data,regstart);
+    c=0xFF;
+    write(fd, &c, 1);
+    c=0xFF;
+    write(fd, &c, 1);
+    c=id;
+    write(fd, &c, 1);
+    c=length; // length
+    write(fd, &c, 1);
+    c=AX_WRITE_DATA;
+    write(fd, &c, 1);
+    c=regstart;
+    write(fd, &c, 1);
+    c=data&0xff;
+    write(fd, &c, 1);
+    // checksum =
+    c=checksum;
+    write(fd, &c, 1);
+    //setRX(id);
+    //ax12ReadPacket();
 }
 void ax12SetRegister2(int id, int regstart, int data){
     //setTX(id);   
@@ -282,25 +316,164 @@ int ax12GetRegister2(int id, int regstart, int length){
     }
 }
 
+void ax12Action(int id){
+    
+  //int id = 0xFE;    // Broadcast ID
+    char c;
+    //setTX(id);    
+    //int checksum = ~((id + 2 + AX_ACTION) % 256);
+     c=0xFF;
+    write(fd, &c, 1);
+     c=0xFF;
+    write(fd, &c, 1);
+    c=id;
+    write(fd, &c, 1);    //                Byte 1
+    c=2;
+    write(fd, &c, 1);    // length = 4
+    c=AX_ACTION;
+    write(fd, &c, 1);    // Byte 2
+    c=0xFA;
+    write(fd, &c, 1);
+    //setRX(id);    // No status pack is sent with this command
+    //ax12ReadPacket();
+}
+
+
+extern void goldo_pump1_speed(int32_t s);
+extern void goldo_pump2_speed(int32_t s);
+
+
 #ifdef CONFIG_BUILD_KERNEL
 int main(int argc, FAR char *argv[])
 #else
 int dynamixel_main(int argc, char *argv[])
 #endif
 {
-  int pos = 1024;
+  int my_id = 0;
+  int my_pos = 1024;
 
   fd = open ("/dev/ttyS1", O_RDWR);
   if (fd<0) {
     return -1;
   }
 
-  if (argc>1) {
-    pos = atoi (argv[1]);
-  } 
-  printf ("pos = %d \n", pos);
+  if (argc>=3) {
+    if (*argv[1] == 'D') {
+      my_pos = atoi (argv[2]);
+      printf ("pompe_droite = %d \n", my_pos);
+      goldo_pump1_speed(my_pos);
+      return 0;
+    } else if (*argv[1] == 'G') {
+      my_pos = atoi (argv[2]);
+      printf ("pompe_gauche = %d \n", my_pos);
+      goldo_pump2_speed(my_pos);
+      return 0;
+    }
 
-  SetPosition (3, pos);
+    my_id = atoi (argv[1]);
+
+    if (*argv[2] == 'e') {
+      TorqueEnable(my_id);
+      return 0;
+    } else if (*argv[2] == 'd') {
+      TorqueDisable(my_id);
+      return 0;
+    }
+
+    my_pos = atoi (argv[2]);
+
+    printf ("SET:\n");
+    printf ("my_id = %d \n", my_id);
+    printf ("my_pos = %d \n", my_pos);
+
+    ax12SetRegister2(my_id, AX_MAX_TORQUE_L, 512);   
+    ax12SetRegister2(my_id, AX_TORQUE_LIMIT_L, 512);   
+
+    SetPosition (my_id, my_pos);
+    //ax12Action(my_id);
+  } else if (argc>=2) {
+    my_id = atoi (argv[1]);
+    printf ("my_id = %d \n", my_id);
+
+    my_pos = GetPosition (my_id);
+    if (my_pos < 0) {
+      printf ("GetPosition() : error.");
+    } else {
+      printf ("GetPosition:\n");
+      printf (" my_pos = %d \n", my_pos);
+    }
+
+    my_pos = GetGoalPosition (my_id);
+    if (my_pos < 0) {
+      printf ("GetGoalPosition() : error.");
+    } else {
+      printf ("GetGoalPosition:\n");
+      printf (" my_pos = %d \n", my_pos);
+    }
+
+    my_pos = GetMaxTorque (my_id);
+    if (my_pos < 0) {
+      printf ("GetMaxTorque() : error.");
+    } else {
+      printf ("GetMaxTorque:\n");
+      printf (" my_pos = %d \n", my_pos);
+    }
+
+    my_pos = GetTorqueLimit (my_id);
+    if (my_pos < 0) {
+      printf ("GetTorqueLimit() : error.");
+    } else {
+      printf ("GetTorqueLimit:\n");
+      printf (" my_pos = %d \n", my_pos);
+    }
+  } else {
+    int i,ret;
+    printf ("usage <id> <new_pos>\n");
+
+    printf ("Bras droit:\n");
+    my_id = 1;
+    //my_pos = GetPosition (my_id);
+    //printf (" - mouv av-arr.(id:%d) : %d\n", my_id, my_pos);
+    printf (" - mouv av-arr.(id:%d) : ??\n", my_id);
+    my_id = 81;
+    my_pos = GetPosition (my_id);
+    printf (" - rot. bras(id:%d) : %d\n", my_id, my_pos);
+    my_id = 82;
+    my_pos = GetPosition (my_id);
+    printf (" - pivot epaule(id:%d) : %d\n", my_id, my_pos);
+    my_id = 2;
+    my_pos = GetPosition (my_id);
+    printf (" - pivot coude(id:%d) : %d\n", my_id, my_pos);
+    my_id = 3;
+    my_pos = GetPosition (my_id);
+    printf (" - pivot poigner(id:%d) : %d\n", my_id, my_pos);
+
+    printf ("Bras gauche:\n");
+    my_id = 4;
+    my_pos = GetPosition (my_id);
+    printf (" - mouv av-arr.(id:%d) : %d\n", my_id, my_pos);
+    my_id = 83;
+    my_pos = GetPosition (my_id);
+    printf (" - rot. bras(id:%d) : %d\n", my_id, my_pos);
+    my_id = 84;
+    my_pos = GetPosition (my_id);
+    printf (" - pivot epaule(id:%d) : %d\n", my_id, my_pos);
+    my_id = 5;
+    my_pos = GetPosition (my_id);
+    printf (" - pivot coude(id:%d) : %d\n", my_id, my_pos);
+    my_id = 6;
+    my_pos = GetPosition (my_id);
+    printf (" - pivot poigner(id:%d) : %d\n", my_id, my_pos);
+
+#if 0
+    ax12SetRegister(254, AX_ID, 3);
+
+    my_pos = ax12GetRegister(254, AX_ID, 1);
+    printf ("AX_ID = %d\n",my_pos);
+#endif
+
+    return -1;
+  }
 
   return 0;
 }

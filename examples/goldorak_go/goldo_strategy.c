@@ -51,8 +51,9 @@ int goldo_strategy_main(int side)
 
 static int bfs_explore_node(int index)
 {
+	int i;
 	goldo_strategy_waypoint_s* pt = &s_waypoints[index];
-	for(int i = pt->edges_out_index;s_edges[i] != -1;i++)
+	for(i = pt->edges_out_index;s_edges[i] != -1;i++)
 	{
 		goldo_strategy_waypoint_s* pt2 = &s_waypoints[s_edges[i]];
 	}
@@ -61,8 +62,9 @@ static int bfs_explore_node(int index)
 /* Do a breadth first search for a path to target point*/
 int goldo_strategy_compute_path(int target_waypoint)
 {
+	int i;
 	printf("goldo_strategy: compute path to waypoint %i",target_waypoint);
-	for(int i=0; i<GOLDO_NUM_WAYPOINTS;i++)
+	for(i=0; i<GOLDO_NUM_WAYPOINTS;i++)
 	{
 		s_bfs_points[i].previous_point = -1;
 	}

@@ -90,16 +90,17 @@ int goldo_arms_release(void)
 
 int boost_torque(bool boost)
 {
+	int i;
 	if(boost)
 	{
-		for(int i =0;i<5;i++)
+		for(i=0;i<5;i++)
 		{
 			SetTorque(s_left_arm_servo_ids[i],s_arms_servo_boost_torques[i]);
 			usleep(10000);
 		}
 	} else
 	{
-		for(int i =0;i<5;i++)
+		for(i=0;i<5;i++)
 		{
 			SetTorque(s_left_arm_servo_ids[i],s_arms_servo_torques[i]);
 			usleep(10000);
@@ -108,9 +109,10 @@ int boost_torque(bool boost)
 }
 int goldo_arms_set_enabled(GOLDO_ARM_SIDE side, bool enabled)
 {
+	int i;
 	if(enabled)
 	{
-		for(int i =0;i<5;i++)
+		for(i=0;i<5;i++)
 		{
 			SetTorque(s_left_arm_servo_ids[i],s_arms_servo_torques[i]);
 			usleep(10000);
@@ -118,7 +120,7 @@ int goldo_arms_set_enabled(GOLDO_ARM_SIDE side, bool enabled)
 		
 	} else
 	{
-		for(int i =0;i<5;i++)
+		for(i=0;i<5;i++)
 		{
 			SetTorque(s_left_arm_servo_ids[i],0);
 		}
@@ -152,7 +154,8 @@ int goldo_arms_drop(GOLDO_ARM_SIDE side)
 
 int goldo_arms_move_to_position(GOLDO_ARM_SIDE side, int pos)
 {
-	for(int i =0;i<5;i++)
+	int i;
+	for(i=0;i<5;i++)
 	{
 		goldo_dynamixels_set_position_sync(s_left_arm_servo_ids[i],s_left_arm_positions[pos].positions[i]);
 		usleep(1000);

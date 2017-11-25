@@ -141,12 +141,12 @@
 #define msleep(i) usleep(i*100)
 void SetPosition(int id, int pos);
 #define PreparePostion(id,pos) (ax12SetRegisterSync2(id, AX_GOAL_POSITION_L, pos))
-#define SetID(id, newID) (ax12SetRegister(id, AX_ID, newID))
-#define SetBD(id, newBD) (ax12SetRegister(id, AX_BAUD_RATE, newBD))
-#define GetID(id) (ax12GetRegister(id,AX_ID,1))
-#define GetBD(id) (ax12GetRegister(id,AX_BAUD_RATE,1))
-#define IsMoving(id) (ax12GetRegister(id,AX_MOVING,1))
-#define GetPreseLoad(id) (ax12GetRegister(id, AX_PRESENT_LOAD_L, 2))
+#define SetID(id, newID) (ax12SetRegister_Thomas(id, AX_ID, newID))
+#define SetBD(id, newBD) (ax12SetRegister_Thomas(id, AX_BAUD_RATE, newBD))
+#define GetID(id) (ax12GetRegister_Thomas(id,AX_ID,1))
+#define GetBD(id) (ax12GetRegister_Thomas(id,AX_BAUD_RATE,1))
+#define IsMoving(id) (ax12GetRegister_Thomas(id,AX_MOVING,1))
+#define GetPreseLoad(id) (ax12GetRegister_Thomas(id, AX_PRESENT_LOAD_L, 2))
 
 static int fd = -1;
 #define id1  81
@@ -172,7 +172,7 @@ int goldo_dynamixels_init(void)
       }
     return OK;
 }
-int ax12ReadPacket(int length){
+int ax12ReadPacket_Thomas(int length){
     //unsigned long ulCounter;
     unsigned char offset, /*blength,*/ checksum /*, timeout*/;
     unsigned char volatile bcount; 
@@ -242,9 +242,10 @@ typedef struct dynamixel_packet_header_s
 
 static void dynamixel_write_packet(uint8_t id, uint8_t command, size_t length, const char* buffer)
 {
+    int i;
     dynamixel_packet_header_s header = {0xFFFF,id,length+2,command};
     uint8_t checksum = id + command + length;
-    for(int i=0;i<length;i++)
+    for(i=0;i<length;i++)
     {
         checksum += (uint8_t)(buffer[i]);
     }
@@ -291,7 +292,7 @@ static int dynamixel_read_packet(size_t buffer_length, const char* buffer, uint8
    
 }
 
-void ax12SetRegister(int id, int regstart, int data){
+void ax12SetRegister_Thomas(int id, int regstart, int data){
     //setTX(id);
     int length = 4;
     int checksum = ~((id + length + AX_WRITE_DATA + regstart + (data&0xFF)) % 256);
@@ -313,9 +314,9 @@ void ax12SetRegister(int id, int regstart, int data){
     write(fd, &c, 1);
     // checksum =    
     write(fd, &c, 1);
-    ax12ReadPacket(6);
+    ax12ReadPacket_Thomas(6);
 }
-void ax12SetRegister2(int id, int regstart, int data){
+void ax12SetRegister2_Thomas(int id, int regstart, int data){
     //setTX(id);
     int length = 5;
     int checksum = ~((id + length + AX_WRITE_DATA + regstart + (data&0xFF) + ((data&0xFF00)>>8)) % 256);
@@ -340,7 +341,7 @@ void ax12SetRegister2(int id, int regstart, int data){
     c=checksum;
     write(fd, &c, 1);
     //setRX(id);
-    ax12ReadPacket(6);
+    ax12ReadPacket_Thomas(6);
 }
 void ax12SetRegisterSync2(int id, int regstart, int data){
     //setTX(id);
@@ -368,7 +369,7 @@ void ax12SetRegisterSync2(int id, int regstart, int data){
     c=checksum;
     write(fd, &c, 1);
     //setRX(id);
-    ax12ReadPacket(6);
+    ax12ReadPacket_Thomas(6);
 }
 void ax12SetRegisterSync(int id, int regstart, int data){
     //setTX(id);
@@ -394,9 +395,9 @@ void ax12SetRegisterSync(int id, int regstart, int data){
     c=checksum;
     write(fd, &c, 1);
     //setRX(id);
-    ax12ReadPacket(6);
+    ax12ReadPacket_Thomas(6);
 }
-void ax12Action(void){
+void ax12Action_Thomas(void){
     
     int id = 0xFE;    // Broadcast ID
     char c;
@@ -415,15 +416,15 @@ void ax12Action(void){
     c=0xFA;
     write(fd, &c, 1);
     //setRX(id);    // No status pack is sent with this command
-    //ax12ReadPacket();
+    //ax12ReadPacket_Thomas();
 }
-int ax12GetRegister(int id, int regstart, int length){  
+int ax12GetRegister_Thomas(int id, int regstart, int length){  
     //setTX(id);
     // 0xFF 0xFF ID LENGTH INSTRUCTION PARAM... CHECKSUM    
     int checksum = ~((id + 6 + regstart + length)%256);
     char c;
     //sleep(1);
-//printf("ax12GetRegister");
+//printf("ax12GetRegister_Thomas");
     c=0xFF;
     write(fd, &c, 1);
     c=0xFF;
@@ -441,7 +442,7 @@ int ax12GetRegister(int id, int regstart, int length){
     c=checksum;  
     write(fd, &c, 1);
     //setRX(id);    
-    if(ax12ReadPacket(length + 6) > 0){
+    if(ax12ReadPacket_Thomas(length + 6) > 0){
         ax12Error = ax_rx_buffer[4];
         if(length == 1)
             return ax_rx_buffer[5];
@@ -452,7 +453,7 @@ int ax12GetRegister(int id, int regstart, int length){
     }
 }
 int dynamixel_get_current_position(int id)    {
-        return ax12GetRegister(id, AX_PRESENT_POSITION_L,2);
+        return ax12GetRegister_Thomas(id, AX_PRESENT_POSITION_L,2);
     }
 
 int dynamixel_set_led(int id, int enable)   
@@ -462,36 +463,36 @@ int dynamixel_set_led(int id, int enable)
     dynamixel_write_packet(id,AX_WRITE_DATA,1,&val);
     dynamixel_read_packet(0,NULL,&error);
 
-    //ax12SetRegister(id, AX_LED, enable);
+    //ax12SetRegister_Thomas(id, AX_LED, enable);
     return OK;
 }
 
     int GetPosition(int id)    {
-        return ax12GetRegister(id, AX_GOAL_POSITION_L, 2);
+        return ax12GetRegister_Thomas(id, AX_GOAL_POSITION_L, 2);
     }
 
 void SetTorque(int id,int value){
-   ax12SetRegister2(id, AX_TORQUE_LIMIT_L, value); 
+   ax12SetRegister2_Thomas(id, AX_TORQUE_LIMIT_L, value); 
    if(value>0) 
    {
-    ax12SetRegister(id,AX_TORQUE_ENABLE,1);
+    ax12SetRegister_Thomas(id,AX_TORQUE_ENABLE,1);
 } else
 {
-    ax12SetRegister(id,AX_TORQUE_ENABLE,0);
+    ax12SetRegister_Thomas(id,AX_TORQUE_ENABLE,0);
 }
     
-   //printf("Return torque enable : %i\n",ax12ReadPacket(6));
+   //printf("Return torque enable : %i\n",ax12ReadPacket_Thomas(6));
    //msleep(100);
 }
 
 void SetPosition(int id,int pos) 
 {
-    ax12SetRegister2(id, AX_GOAL_POSITION_L, pos);
+    ax12SetRegister2_Thomas(id, AX_GOAL_POSITION_L, pos);
 }
 
 void goldo_dynamixels_set_position(int id,int pos) 
 {
-    ax12SetRegister2(id, AX_GOAL_POSITION_L, pos);
+    ax12SetRegister2_Thomas(id, AX_GOAL_POSITION_L, pos);
 }
 
 void goldo_dynamixels_set_position_sync(int id,int pos)
@@ -502,7 +503,7 @@ void goldo_dynamixels_set_position_sync(int id,int pos)
 
 void goldo_dynamixels_do_action()
 {
-    ax12Action();
+    ax12Action_Thomas();
 }
 
 
@@ -542,32 +543,32 @@ void printPosition(void){
     printf("Moto positions :\n");
     printf("MX-28 id 81, position : ");
     printf("%i \n",GetPosition(id1));
-    ax12ReadPacket(6);
+    ax12ReadPacket_Thomas(6);
     printf("MX-28 id 82, position : ");
     printf("%i \n",GetPosition(id2));
-    ax12ReadPacket(6);
+    ax12ReadPacket_Thomas(6);
     printf("AX-12 id 2, position : ");
     printf("%i \n",GetPosition(id3));
-    ax12ReadPacket(6);
+    ax12ReadPacket_Thomas(6);
     printf("AX-12 id 101, position : ");
     printf("%i \n",GetPosition(id4));
-    ax12ReadPacket(6);
+    ax12ReadPacket_Thomas(6);
     
 }
 void printLoad(void){
     printf("Moto load :\n");
     printf("MX-28 id 81, load : ");
     printf("%i \n",GetPreseLoad(id1));
-    ax12ReadPacket(6);
+    ax12ReadPacket_Thomas(6);
     printf("MX-28 id 82, load : ");
     printf("%i \n",GetPreseLoad(id2));
-    ax12ReadPacket(6);
+    ax12ReadPacket_Thomas(6);
     printf("AX-12 id 2, load : ");
     printf("%i \n",GetPreseLoad(id3));
-    ax12ReadPacket(6);
+    ax12ReadPacket_Thomas(6);
     printf("AX-12 id 101, load : ");
     printf("%i \n",GetPreseLoad(id4));
-    ax12ReadPacket(6);
+    ax12ReadPacket_Thomas(6);
     
 }
 void savePosition(int id,int pos){//save goal position to compare after move
@@ -644,77 +645,3 @@ int checkMove(void){
     return 1;
     
 }
-/*
-#ifdef CONFIG_BUILD_KERNEL
-int main(int argc, FAR char *argv[])
-#else
-int dynamixel_main(int argc, char *argv[])
-#endif
-{
-int pos = -1;
-int id =-1;
-  fd = open ("/dev/ttyS1", O_RDWR | O_NONBLOCK);
-  if (fd<0) {
-    return -1;
-  }
-  
-#if 1
-
-SetTorque(id1,512);
-SetTorque(id2,512);
-SetTorque(id3,512);
-SetTorque(id4,512);
-pos1 = GetPosition(id1);
-pos2 = GetPosition(id2);
-pos3 = GetPosition(id3);
-pos4 = GetPosition(id4);
-if(argc>1){
-  if (argc%2 != 0) {
-    int i ;
-    for(i = 1;i< argc;i+=2){
-        id =  atoi (argv[i]);
-        id = chooseId(id);
-        if(id != -1){
-            pos = atoi (argv[i+1]);
-            //printf("Position recived : %i\n",pos);
-            pos = checkPos(id,pos);
-            if (pos !=-1){
-                printf("Motor %i, position %i\n",id,pos);
-                PreparePostion (id, pos);
-                savePosition(id,pos);
-                ax12ReadPacket(6);
-            }
-            else{
-                printf("Wrong postion, 0 to 1024 for motor 1 & 2 or 0 to 4096 for motor 3 & 4 \n");
-            }
-        }
-        else{
-             printf ("Wrong motor number, from 1 to 4 \n");
-        }
-    }
-    ax12Action();
-        movingLoad();
-    /*if (checkMove()==0){
-        printf("Error during moove\n");
-        
-    }
-  }
-  else {
-    printf ("Wrong number of argument. The format is : motor number, position\n");
-  }
-}
-else{
-  msleep(1);
-  printPosition();
-  printLoad();
-}
-#else
-printPosition();
-initTorque();
-for(int i = 0;i<5;i++){
-printPosition();
-}
-#endif
-  return 0;
-}
-*/

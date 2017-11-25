@@ -251,7 +251,7 @@ goldo_asserv_trace_point_s asserv_trace_buffer[50];
 
 static int tune_pid_distance(void)
 {
-  
+  int i;
   float k_p=0;
   float k_i=0;
   float k_d=0;
@@ -305,7 +305,7 @@ static int tune_pid_distance(void)
         goldo_asserv_wait(1);
         goldo_asserv_straight_line(-0.5,0.2,0.2,0.2);        
         goldo_asserv_wait_finished();
-        for(int i=0;i<50;i++)
+        for(i=0;i<50;i++)
         {
           printf("%i,%i,%i,%i,%i\t",
            (int)(asserv_trace_buffer[i].elapsed_distance_setpoint*1000),
@@ -324,7 +324,7 @@ static int tune_pid_distance(void)
         goldo_asserv_position_step(0.2);
         goldo_asserv_wait(5);
         goldo_asserv_wait_finished();
-        for(int i=0;i<50;i++)
+        for(i=0;i<50;i++)
         {
           printf("%i,%i,%i,%i,%i\t",
            (int)(asserv_trace_buffer[i].elapsed_distance_setpoint*1000),
@@ -350,7 +350,7 @@ static int tune_pid_distance(void)
 
 static int tune_pid_heading(void)
 {
-  
+  int i;
   float k_p=0;
   float k_i=0;
   float k_d=0;
@@ -396,7 +396,7 @@ static int tune_pid_heading(void)
         goldo_asserv_rotation(M_PI,0.2,0.2,0.2);
         goldo_asserv_rotation(-M_PI,0.2,0.2,0.2);
         goldo_asserv_wait_finished();
-        for(int i=0;i<50;i++)
+        for(i=0;i<50;i++)
         {
           printf("%i,%i,%i,%i,%i\t",
            (int)(asserv_trace_buffer[i].heading_change_setpoint*180/M_PI),
@@ -415,7 +415,7 @@ static int tune_pid_heading(void)
         goldo_asserv_heading_step(90*M_PI/180);
         goldo_asserv_wait(5);
         goldo_asserv_wait_finished();
-        for(int i=0;i<50;i++)
+        for(i=0;i<50;i++)
         {
           printf("%i,%i,%i,%i,%i\t",
           (int)(asserv_trace_buffer[i].heading_change_setpoint*180/M_PI),
@@ -702,6 +702,7 @@ void SetTorque(int id,int value);
 //void goldo_dynamixels_do_action(int id);
 
 extern void goldo_pump1_speed(int32_t s);
+extern void goldo_pump2_speed(int32_t s);
 
 int main_loop_test_dynamixels(void)
 {
@@ -709,9 +710,11 @@ int main_loop_test_dynamixels(void)
   int position;
   char command;
 
- 
+  char last_pump_id='\0';
+  int last_pump_speed=0;
 
- while(1)
+
+  while(1)
   {
     printf("Dynamixels test\n");    
     printf("\n");
@@ -740,12 +743,36 @@ int main_loop_test_dynamixels(void)
         break;
       case 'p':
         get_char_value("Left(l), Right(r): ",&command);
-        get_int_value("PWM (1-65000): ",&position);  
-        goldo_pump2_speed(position);
+        get_int_value("PWM (1-65000): ",&position);
+        if (position>65535) position=65535;
+        if (position<-65535) position=-65535;
+        if (command=='l') {
+          last_pump_id='l';
+          last_pump_speed=position;
+          goldo_pump2_speed(position);
+        } else if (command=='r') {
+          last_pump_id='r';
+          last_pump_speed=position;
+          goldo_pump1_speed(position);
+        }
         break;
       case 'G':
         get_char_value("Left(l), Right(r): ",&command);
         goldo_arms_grab(0);
+        break;
+      case '!':
+        goldo_pump1_speed(0);
+        goldo_pump2_speed(0);
+        break;
+      case '*':
+        printf ("last_pump_id= %c ; last_pump_speed= %d\n", last_pump_id, last_pump_speed);
+        if (last_pump_id=='l') {
+          printf ("l\n");
+          goldo_pump2_speed(last_pump_speed);
+        } else if (last_pump_id=='r') {
+          printf ("r\n");
+          goldo_pump1_speed(last_pump_speed);
+        }
         break;
       case 'q':
         return OK;
