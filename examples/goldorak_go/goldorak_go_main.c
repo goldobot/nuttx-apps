@@ -205,6 +205,12 @@ int robot_speed_val_2;
 int robot_motor_1;
 int robot_motor_2;
 
+/* GPS ++ */
+double robot_theta;
+double robot_x;
+double robot_y;
+/* GPS -- */
+
 static void asserv_do_job_blocking(int my_cmd_type, int my_D)
 {
   int i;
@@ -334,13 +340,13 @@ static void *thread_asserv(void *arg)
     robot_speed_val_1 = delta_rc_val_1;
     robot_speed_val_2 = delta_rc_val_2;
 
-#if 0 /* FIXME : TODO */
+#if 1 /* FIXME : TODO */
     /* GPS */
     robot_theta += delta_rc_val_1 - delta_rc_val_2;
     {
       int delta_dist = (delta_rc_val_1+delta_rc_val_2)/2;
-      robot_x += delta_dist * robot_cos (robot_theta)/0x10000;
-      robot_y += delta_dist * robot_sin (robot_theta)/0x10000;
+      robot_x += 0.5 * delta_dist * cos (0.0012*robot_theta);
+      robot_y += 0.5 * delta_dist * sin (0.0012*robot_theta);
     }
 #endif
     /* fin odometrie -----------------------------------------------------*/
@@ -402,12 +408,14 @@ static void *detect_obstacle(void *arg)
 
   while(!rt_quit) {
     i++;
+#if 0 /* FIXME : DEBUG : HACK */
     obstacle_gpio_state = goldo_get_obstacle_gpio_state();
     if (obstacle_gpio_state!=0) {
       rt_quit=true;
       goldo_maxon2_speed(0);
       goldo_maxon1_speed(0);
     }
+#endif
     usleep (20000);
   }
   printf("detect_obstacle done\n");
@@ -555,7 +563,9 @@ int goldorak_go_main(int argc, char *argv[])
   homo_trans = strtol(argv[1], NULL, 10);
   homo_rot = strtol(argv[2], NULL, 10);
 
+#if 1 /* FIXME : DEBUG : HACK */
   while (start_gpio_state==0) start_gpio_state = goldo_get_start_gpio_state();
+#endif
 
   gettimeofday (&tv0, NULL);
 
@@ -647,10 +657,24 @@ int goldorak_go_main(int argc, char *argv[])
   }
 
 
+/* GPS ++ */
+  robot_theta = 0.0;
+  robot_x = 0.0;
+  robot_y = 0.0;
+/* GPS -- */
+
 #if 0 /* FIXME : DEBUG ++ */
   /* FIXME : TODO */
+  printf(" robot_x = %.6f\n", robot_x);
+  printf(" robot_y = %.6f\n", robot_y);
+  printf(" robot_theta = %.6f\n", robot_theta);
+
   /* Wait for asserv job to finish .. */
   asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, D_final);
+
+  printf(" robot_x = %.6f\n", robot_x);
+  printf(" robot_y = %.6f\n", robot_y);
+  printf(" robot_theta = %.6f\n", robot_theta);
 #else /* FIXME : DEBUG == */
 # if 0 /* FIXME : DEBUG ++ */
   asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 1640);
