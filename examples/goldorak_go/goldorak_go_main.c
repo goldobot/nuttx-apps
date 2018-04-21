@@ -101,6 +101,9 @@ int __fpclassifyd(double val)
 extern int goldo_get_start_gpio_state(void);
 extern int goldo_get_obstacle_gpio_state(void);
 #endif
+#if 1 /* FIXME : DEBUG : HACK Belgique 2018 */
+extern int goldo_get_couleur_gpio_state(void);
+#endif
 
 extern void goldo_maxon2_dir_p(void);
 extern void goldo_maxon2_dir_n(void);
@@ -219,10 +222,10 @@ static void asserv_do_job_blocking(int my_cmd_type, int my_D)
   int cmd_offset_2 = 150; /* gauche */
 
 /* FIXME : TODO : regler finement les constantes de l'asserv.. */
-  int Kpos_D  = 40;
-  int Kpos_Th = 40;
-  int Kvit_D  = 20;
-  int Kvit_Th = 20; //40
+  int Kpos_D  = 80;
+  int Kpos_Th = 80;
+  int Kvit_D  = 40;
+  int Kvit_Th = 40; //40
 
   if ((my_cmd_type!=ASSERV_CMD_TYPE_TRANSLATION) && 
       (my_cmd_type!=ASSERV_CMD_TYPE_ROTATION) && 
@@ -328,8 +331,13 @@ static void *thread_asserv(void *arg)
     ioctl(fd_qe_r, QEIOC_POSITION, (unsigned long)((uintptr_t)&qe_r));
     ioctl(fd_qe_l, QEIOC_POSITION, (unsigned long)((uintptr_t)&qe_l));
 
+#if 0 /* FIXME : TODO : corriger signe odometrie */
     robot_rc_val_1 = qe_r;
     robot_rc_val_2 = qe_l * 0xffc / 0x1000;
+#else
+    robot_rc_val_1 = -qe_r;
+    robot_rc_val_2 = -qe_l * 0xffc / 0x1000;
+#endif
 
     delta_rc_val_1 = robot_rc_val_1 - robot_rc_val_1_old;
     delta_rc_val_2 = robot_rc_val_2 - robot_rc_val_2_old;
@@ -408,7 +416,7 @@ static void *detect_obstacle(void *arg)
 
   while(!rt_quit) {
     i++;
-#if 0 /* FIXME : DEBUG : HACK */
+#if 1 /* FIXME : DEBUG : HACK */
     obstacle_gpio_state = goldo_get_obstacle_gpio_state();
     if (obstacle_gpio_state!=0) {
       rt_quit=true;
@@ -542,9 +550,10 @@ int goldorak_go_main(int argc, char *argv[])
   //int i;
   pthread_t id,idhog,iddetect;
 
-#if 1 /* FIXME : DEBUG : HACK homologation 2017 */
+#if 1 /* FIXME : DEBUG : HACK homologation 2017 et Belgique 2018 */
   int start_gpio_state = 0;
   int obstacle_gpio_state = 0;
+  int couleur_gpio_state = 0;
   struct timeval tv0, tv1;
 
   start_gpio_state = goldo_get_start_gpio_state();
@@ -552,6 +561,9 @@ int goldorak_go_main(int argc, char *argv[])
 
   obstacle_gpio_state = goldo_get_obstacle_gpio_state();
   printf ("obstacle_gpio_state = %d\n", obstacle_gpio_state);
+
+  couleur_gpio_state = goldo_get_couleur_gpio_state();
+  printf ("couleur_gpio_state = %d\n", couleur_gpio_state);
 
   int homo_trans = 0;
   int homo_rot = 0;
@@ -565,6 +577,12 @@ int goldorak_go_main(int argc, char *argv[])
 
 #if 1 /* FIXME : DEBUG : HACK */
   while (start_gpio_state==0) start_gpio_state = goldo_get_start_gpio_state();
+#endif
+
+#if 1 /* FIXME : DEBUG : HACK homologation 2017 et Belgique 2018 */
+  couleur_gpio_state = goldo_get_couleur_gpio_state();
+  if (couleur_gpio_state!=0) /* 0=vert ; 1=orange */
+    homo_rot = -homo_rot;
 #endif
 
   gettimeofday (&tv0, NULL);
@@ -675,48 +693,186 @@ int goldorak_go_main(int argc, char *argv[])
   printf(" robot_x = %.6f\n", robot_x);
   printf(" robot_y = %.6f\n", robot_y);
   printf(" robot_theta = %.6f\n", robot_theta);
-#else /* FIXME : DEBUG == */
-# if 0 /* FIXME : DEBUG ++ */
-  asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 1640);
-  usleep (500000);
-  asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, 940);
-  usleep (500000);
-  asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 1150);
-  usleep (500000);
-  asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, 620);
-  usleep (500000);
-  asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 950);
-  usleep (500000);
-  //asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, -500);
-  goldo_maxon2_speed(-25000);
-  goldo_maxon1_speed(-25000);
-  usleep (500000);
-  goldo_maxon2_speed(0);
-  goldo_maxon1_speed(0);
-# else /* FIXME : DEBUG == */
-  asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, homo_trans*1640/1150);
-  if (rt_quit) goto stop_motors;
-  usleep (200000);
-  asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, homo_rot*940/620);
-  if (rt_quit) goto stop_motors;
-  usleep (200000);
+#endif /* FIXME : DEBUG -- */
+
+#if 0 /* FIXME : DEBUG : code homologation Belgique 2018 */
   asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, homo_trans);
   if (rt_quit) goto stop_motors;
   usleep (200000);
   asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, homo_rot);
   if (rt_quit) goto stop_motors;
   usleep (200000);
-  asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, homo_trans*950/1150);
+  asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, homo_trans);
   if (rt_quit) goto stop_motors;
   usleep (200000);
-  //asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, -500);
   goldo_maxon2_speed(-25000);
   goldo_maxon1_speed(-25000);
   usleep (500000);
   goldo_maxon2_speed(0);
   goldo_maxon1_speed(0);
-# endif /* FIXME : DEBUG -- */
-#endif /* FIXME : DEBUG -- */
+#endif /* FIXME : DEBUG Belgique */
+
+#if 0 /* FIXME : DEBUG : tentative lancement abeille Belgique 2018 */
+  if (couleur_gpio_state!=0) { /* 1=orange */
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 1600);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, 500);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 1100);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, -300);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 600);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+  } else { /* 0=vert */
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 1600);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, -380);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 1100);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, 300);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 600);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+  }
+#endif /* FIXME : DEBUG Belgique */
+
+#if 1 /* FIXME : DEBUG : tentative cubes + abeille Belgique 2018 */
+  if (couleur_gpio_state!=0) { /* 1=orange */
+    /* cubes */
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 1750);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, -900);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 1600);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    goldo_maxon2_speed(-25000);
+    goldo_maxon1_speed(-25000);
+    usleep (500000);
+    goldo_maxon2_speed(0);
+    goldo_maxon1_speed(0);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, -1100);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+
+    /* abeille */
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 2200);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, 320);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 750);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, -390);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 800);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    goldo_maxon2_speed(-25000);
+    goldo_maxon1_speed(-25000);
+    usleep (500000);
+    goldo_maxon2_speed(0);
+    goldo_maxon1_speed(0);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 400);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    goldo_maxon2_speed(-25000);
+    goldo_maxon1_speed(-25000);
+    usleep (500000);
+    goldo_maxon2_speed(0);
+    goldo_maxon1_speed(0);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, -1000);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 2100);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, -100);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 1600);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+  } else { /* 0=vert */
+    /* cubes */
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 1750);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, 900);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 1600);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    goldo_maxon2_speed(-25000);
+    goldo_maxon1_speed(-25000);
+    usleep (500000);
+    goldo_maxon2_speed(0);
+    goldo_maxon1_speed(0);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, 1100);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+
+    /* abeille */
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 2200);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, -320);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 750);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, 390);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 800);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    goldo_maxon2_speed(-25000);
+    goldo_maxon1_speed(-25000);
+    usleep (500000);
+    goldo_maxon2_speed(0);
+    goldo_maxon1_speed(0);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 400);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    goldo_maxon2_speed(-25000);
+    goldo_maxon1_speed(-25000);
+    usleep (500000);
+    goldo_maxon2_speed(0);
+    goldo_maxon1_speed(0);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, 1000);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 2100);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_ROTATION, 100);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+    asserv_do_job_blocking(ASSERV_CMD_TYPE_TRANSLATION, 1600);
+    if (rt_quit) goto stop_motors;
+    usleep (200000);
+  }
+#endif /* FIXME : DEBUG Belgique */
 
  stop_motors:
   /* STOP motors */
@@ -751,6 +907,7 @@ int goldorak_go_main(int argc, char *argv[])
   printf("Finished\n");
   close(tim_fd);
 
+#if 0 /* FIXME : DEBUG : code 2017 (funny action) */
   while (1) {
     gettimeofday (&tv1, NULL);
     //printf(" tv1.tv_sec = %d\n", tv1.tv_sec);
@@ -763,6 +920,10 @@ int goldorak_go_main(int argc, char *argv[])
     delta_tv_usec = delta_tv_sec*1000000 + (tv1.tv_usec - tv0.tv_usec);
     //printf(" delta_tv_usec = %d\n", delta_tv_usec);
     printf(" delta_tv_sec = %d\n", delta_tv_sec);
+
+    if (delta_tv_sec>100) {
+      break;
+    }
 
     if (delta_tv_sec>90) {
       int fd_funny = -1;
@@ -800,7 +961,9 @@ int goldorak_go_main(int argc, char *argv[])
     }
 
     usleep (100000);
+
   }
+#endif /* FIXME : DEBUG : code 2017 */
 
   fflush(stdout);
   return OK;
