@@ -58,6 +58,10 @@ extern void goldo_maxon1_speed(int32_t s);
 #define SEUIL_FRICTION_BRUSHLESS_2N 14500 // 15000 15660 16020 16080 // 15690
 #define SEUIL_PROTECT_BRUSHLESS 60000
 
+#define ASSERV_ACCEL_DIV 10
+
+#define ASSERV_MOTOR_GAIN_R 64
+#define ASSERV_MOTOR_GAIN_L 57
 
 extern int asserv_todo_dist;
 
@@ -199,6 +203,8 @@ int cmd_max_dTh    =    250; /* seuil de vitesse angulaire         */
 /* variables d'etat pour l'automate generateur de trajectoire et consigne */
 int cmd_fake_dD    =      0;
 int cmd_fake_dTh   =      0;
+int cmd_fake2_dD    =      0;
+int cmd_fake2_dTh   =      0;
 int cmd_req_rmb_1  =      0; /* offset commande moteur 1           */
 int cmd_req_rmb_2  =      0; /* offset commande moteur 2           */
 int cmd_req_d2D    =      0; /* acceleration lineaire              */
@@ -223,7 +229,7 @@ void cmd_gen_set_params (int _init_rmb_1, int _init_rmb_2,
 int cmd_get_duration (int _type, int _D) /* in microseconds */
 {
   /* FIXME : TODO : quelque chose de + intelligent.. */
-  return 2400.0*_D + 1000000;
+  return 2400.0*abs(_D) + 4000000;
 }
 
 int cmd_init_new_traj (int _type, int _D)
@@ -247,6 +253,8 @@ int cmd_init_new_traj (int _type, int _D)
   }
   cmd_fake_dD    =      0;
   cmd_fake_dTh   =      0;
+  cmd_fake2_dD    =      0;
+  cmd_fake2_dTh   =      0;
   cmd_req_rmb_1  =      0;
   cmd_req_rmb_2  =      0;
   cmd_req_d2D    =      0;
@@ -270,12 +278,15 @@ static void cmd_gen_translation (void)
   } else /*if (abs(cmd_req_D)<abs(cmd_final_D))*/ {
     if (cmd_final_D>0) cmd_req_d2D = -cmd_max_d2D;
     else cmd_req_d2D = cmd_max_d2D;
-    cmd_req_rmb_1 = 0;
-    cmd_req_rmb_2 = 0;
+    if (cmd_req_rmb_1>10)
+      cmd_req_rmb_1--;
+    if (cmd_req_rmb_2>10)
+      cmd_req_rmb_2--;
   }
   cmd_fake_dD = cmd_fake_dD + cmd_req_d2D;
-  if (abs(cmd_fake_dD)>abs(cmd_max_dD)) cmd_req_dD=cmd_max_dD;
-  else cmd_req_dD=cmd_fake_dD;
+  cmd_fake2_dD = cmd_fake_dD/ASSERV_ACCEL_DIV;
+  if (abs(cmd_fake2_dD)>abs(cmd_max_dD)) cmd_req_dD=cmd_max_dD;
+  else cmd_req_dD=cmd_fake2_dD;
   if ((cmd_final_D*cmd_req_dD<0) || (abs(cmd_req_D)>=abs(cmd_final_D))) 
     cmd_req_dD=0;
   cmd_req_D = cmd_req_D + cmd_req_dD;
@@ -313,8 +324,9 @@ static void cmd_gen_rotation (void)
     cmd_req_rmb_2 = 0;
   }
   cmd_fake_dTh = cmd_fake_dTh + cmd_req_d2Th;
-  if (abs(cmd_fake_dTh)>abs(cmd_max_dTh)) cmd_req_dTh=cmd_max_dTh;
-  else cmd_req_dTh=cmd_fake_dTh;
+  cmd_fake2_dTh = cmd_fake_dTh/ASSERV_ACCEL_DIV;
+  if (abs(cmd_fake2_dTh)>abs(cmd_max_dTh)) cmd_req_dTh=cmd_max_dTh;
+  else cmd_req_dTh=cmd_fake2_dTh;
   if ((cmd_final_Th*cmd_req_dTh<0) || (abs(cmd_req_Th)>=abs(cmd_final_Th))) 
     cmd_req_dTh=0;
   cmd_req_Th = cmd_req_Th + cmd_req_dTh;
@@ -403,8 +415,8 @@ void asserv_cmd_corr_pd (int rc_val_1, int rc_val_2,
   m2 = m2/100;
 
 #if 1 /* FIXME : TODO : calibration pour nucleo.. */
-  m1 = m1*64;
-  m2 = m2*64;
+  m1 = m1*ASSERV_MOTOR_GAIN_R;
+  m2 = m2*ASSERV_MOTOR_GAIN_L;
 #endif
 
   if (m1>0) m1+=SEUIL_FRICTION_BRUSHLESS_1P;
@@ -420,5 +432,4 @@ void asserv_cmd_corr_pd (int rc_val_1, int rc_val_2,
   *cmd_motor_1 = m1;
   *cmd_motor_2 = m2;
 }
-
 

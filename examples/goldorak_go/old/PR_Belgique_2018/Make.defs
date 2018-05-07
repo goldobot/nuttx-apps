@@ -1,7 +1,8 @@
 ############################################################################
-# apps/examples/goldorak_go/Makefile
+# apps/examples/goldorak_go/Make.defs
+# Adds selected applications to apps/ build
 #
-#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2015 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,36 +34,6 @@
 #
 ############################################################################
 
--include $(TOPDIR)/Make.defs
-
-# GOLDORAK_GO Example.
-
-ASRCS =
-CSRCS = goldo_asserv.c\
-        goldo_asserv_hal.c\
-        goldo_asserv_arch.c\
-        goldo_pid_filter.c\
-        goldo_odometry.c\
-        goldo_odometry_hal.c\
-        goldo_command_fifo.c\
-        goldo_polyline.c\
-        goldo_match_timer.c\
-        goldo_main_loop.c\
-        goldo_strategy.c\
-        robot/robot.c\
-        robot/arms.c\
-        robot/adversary_detection.c \
-        dynamixel.c
-        
-MAINSRC = goldo_go_main.c
-
-CONFIG_XYZ_PROGNAME ?= goldorak_go$(EXEEXT)
-PROGNAME = $(CONFIG_XYZ_PROGNAME)
-
-# GOLDORAK_GO built-in application info
-
-APPNAME = goldorak_go
-PRIORITY = SCHED_PRIORITY_DEFAULT
-STACKSIZE = 2048
-
-include $(APPDIR)/Application.mk
+ifeq ($(CONFIG_EXAMPLES_GOLDORAK_GO),y)
+CONFIGURED_APPS += examples/goldorak_go
+endif
