@@ -64,6 +64,8 @@
 /****************************************************************************
  * serialrx_main
  ****************************************************************************/
+#define MY_BUF_SZ 256
+char my_buf[MY_BUF_SZ];
 
 #ifdef CONFIG_BUILD_KERNEL
 int main(int argc, FAR char *argv[])
@@ -71,11 +73,7 @@ int main(int argc, FAR char *argv[])
 int serialrx_main(int argc, char *argv[])
 #endif
 {
-#ifdef CONFIG_EXAMPLES_SERIALRX_BUFFERED
-  FAR FILE *f;
-#else
   int fd;
-#endif
 #ifdef CONFIG_EXAMPLES_SERIALRX_PRINTHYPHEN
   int count = 0;
 #endif
@@ -86,111 +84,46 @@ int serialrx_main(int argc, char *argv[])
   FAR char *buf;
   FAR char *devpath;
 
-  if (argc == 1)
-    {
-      devpath = CONFIG_EXAMPLES_SERIALRX_DEVPATH;
-    }
-  else if (argc == 2)
-    {
-      devpath = argv[1];
-    }
-  else
-    {
-      fprintf(stderr, "Usage: %s [devpath]\n", argv[0]);
-      goto errout;
-    }
+  if (argc == 1) {
+    devpath = CONFIG_EXAMPLES_SERIALRX_DEVPATH;
+  } else if (argc == 2) {
+    devpath = argv[1];
+  } else {
+    printf("Usage: %s [devpath]\n", argv[0]);
+    goto errout;
+  }
 
-#ifdef CONFIG_EXAMPLES_SERIALRX_PRINTSTR
-  buf = (FAR char *)malloc(CONFIG_EXAMPLES_SERIALRX_BUFSIZE + 1);
-#else
-  buf = (FAR char *)malloc(CONFIG_EXAMPLES_SERIALRX_BUFSIZE);
-#endif
-  if (buf == NULL)
-    {
-      fprintf(stderr, "ERROR: malloc failed: %d\n", errno);
-      goto errout;
-    }
+  buf = (FAR char *)my_buf;
 
-#ifdef CONFIG_EXAMPLES_SERIALRX_BUFFERED
-  f = fopen(devpath, "r");
-  if (f == NULL)
-    {
-      fprintf(stderr, "ERROR: fopen failed: %d\n", errno);
-      goto errout_with_buf;
-    }
-#else
-  fd = open(devpath, O_RDONLY);
-  if (fd < 0)
-    {
-      fprintf(stderr, "ERROR: open failed: %d\n", errno);
-      goto errout_with_buf;
-    }
-#endif
+  fd = open(devpath, O_RDWR);
+  if (fd < 0) {
+    printf("ERROR: open failed: %d\n", errno);
+    goto errout_with_buf;
+  }
+
+  write(fd, "Serial test\n", 13);
 
   printf("Reading from %s\n", devpath);
-  fflush(stdout);
 
-  while (!eof)
-    {
-#ifdef CONFIG_EXAMPLES_SERIALRX_BUFFERED
-      size_t n = fread(buf, 1, CONFIG_EXAMPLES_SERIALRX_BUFSIZE, f);
-      if (feof(f))
-        {
-          eof = true;
-        }
-      else if (ferror(f))
-        {
-          printf("fread failed: %d\n", errno);
-          fflush(stdout);
-          clearerr(f);
-        }
-#else
-      ssize_t n = read(fd, buf, CONFIG_EXAMPLES_SERIALRX_BUFSIZE);
-      if (n == 0)
-        {
-          eof = true;
-        }
-      else if (n < 0)
-        {
-          printf("read failed: %d\n", errno);
-          fflush(stdout);
-        }
-#endif
-      else
-        {
-#if defined(CONFIG_EXAMPLES_SERIALRX_PRINTHYPHEN)
-          count += (int)n;
-          if (count >= CONFIG_EXAMPLES_SERIALRX_BUFSIZE)
-            {
-              printf("-");
-              fflush(stdout);
-              count -= CONFIG_EXAMPLES_SERIALRX_BUFSIZE;
-            }
-#elif defined(CONFIG_EXAMPLES_SERIALRX_PRINTHEX)
-          for (i = 0; i < (int)n; i++)
-            {
-              printf("0x%02x ", i, buf[i]);
-            }
-          fflush(stdout);
-#elif defined(CONFIG_EXAMPLES_SERIALRX_PRINTSTR)
-          buf[n] = '\0';
-          printf("%s", buf);
-          fflush(stdout);
-#endif
-        }
+  while (!eof) {
+    int n = read(fd, buf, 1);
+    if (n == 0) {
+      eof = true;
+    } else if (n < 0) {
+      printf("read failed: %d\n", errno);
+    } else {
+      printf("%c\n", buf[0]);
+      buf[0]++;
+      write(fd, buf, 1);
     }
+  }
 
 #ifdef CONFIG_EXAMPLES_SERIALRX_PRINTHYPHEN
   printf("\n");
 #endif
   printf("EOF reached\n");
-  fflush(stdout);
 
-#ifdef CONFIG_EXAMPLES_SERIALRX_BUFFERED
-  fclose(f);
-#else
   close(fd);
-#endif
 
   free(buf);
   return EXIT_SUCCESS;
@@ -199,6 +132,5 @@ errout_with_buf:
   free(buf);
 
 errout:
-  fflush(stderr);
   return EXIT_FAILURE;
 }

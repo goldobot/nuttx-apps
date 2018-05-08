@@ -96,6 +96,7 @@ static int run_mode=0;
  * Public Data
  ****************************************************************************/
 extern void match_goldo(void);
+extern void main_loop_test_servos(void);
 
 /****************************************************************************
  * Private Functions
@@ -199,6 +200,11 @@ static void parse_args(int argc, FAR char **argv)
     run_mode = GOLDO_MODE_UTEST_FUNNY_ACTION;
     return;
   }
+  if (strcmp(ptr,"test_servos")==0)
+  {
+    run_mode = GOLDO_MODE_TEST_SERVOS;
+    return;
+  }
 }
 
 
@@ -209,6 +215,7 @@ static void parse_args(int argc, FAR char **argv)
 /****************************************************************************
  * Name: goldorak_go_main
  ****************************************************************************/
+extern void init_servos(void);
 //#define CONFIG_BUILD_KERNEL
 #ifdef CONFIG_BUILD_KERNEL
 int main(int argc, FAR char *argv[])
@@ -217,6 +224,9 @@ int goldorak_go_main(int argc, char *argv[])
 #endif
 {
  // int ret;
+
+  init_servos();
+
   goldo_asserv_hal_reset();
 
 #if 1 /* FIXME : DEBUG : hack Goldo pre-coupe 2018 */
@@ -273,9 +283,13 @@ int goldorak_go_main(int argc, char *argv[])
     case GOLDO_MODE_UTEST_FUNNY_ACTION:
       main_loop_utest_funny_action();
       break;
+    case GOLDO_MODE_TEST_SERVOS:
+      main_loop_test_servos();
+      break;
   }
   goldo_robot_release();
   printf("End of main\n");
   exit(0);
   return OK;
 }
+

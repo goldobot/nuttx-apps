@@ -13,6 +13,7 @@
 #define GOLDO_MODE_UTEST_ADVERSARY_DETECTION 21
 #define GOLDO_MODE_UTEST_MATCH_TIMER 22
 #define GOLDO_MODE_UTEST_FUNNY_ACTION 23
+#define GOLDO_MODE_TEST_SERVOS 42
 /****************************************************************************
  * Private Types
  ****************************************************************************/

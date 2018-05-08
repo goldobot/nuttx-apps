@@ -9,11 +9,28 @@
 #include "robot/goldo_arms.h"
 #include "goldo_dynamixels.h"
 
-#include <math.h>
+#include <nuttx/config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <debug.h>
+#include <semaphore.h>
+#include <pthread.h>
+#include <signal.h>
+#include <nuttx/init.h>
+#include <nuttx/arch.h>
+#include <string.h>
+
+#include <nuttx/semaphore.h>
+#include <nuttx/timers/timer.h>
+#include <nuttx/drivers/pwm.h>
+#include <nuttx/sensors/qencoder.h>
+
 #include <system/readline.h>
+#include <math.h>
 
 #if 1 /* FIXME : DEBUG : test Goldo 03/05/2018 */
 int enable_simul_obstacle = 0;
@@ -26,13 +43,16 @@ volatile int obstacle_flag = 0;
 void *simul_obstacle(void *arg);
 void *detect_obstacle(void *arg);
 void match_goldo(void);
+void servo_bac(int pos);
+void servo_trappe(int pos);
 
 extern int goldo_get_start_gpio_state(void);
 extern int goldo_get_obstacle_gpio_state(void);
-
-#if 1 /* FIXME : TODO */
 extern int goldo_get_couleur_gpio_state(void);
-#endif
+
+int fd_servo_bac_g = -1;
+int fd_servo_bac_d = -1;
+int fd_servo_trappe = -1;
 #endif
 
 static char s_input_buffer[32];
@@ -1123,16 +1143,135 @@ void goldo_homing(waypoint_type_t type)
   }
 }
 
+void init_servos(void)
+{
+  struct pwm_info_s info_servo;
+  int ret;
+
+  fd_servo_bac_g = open("/dev/pwm16", O_RDONLY);
+  if (fd_servo_bac_g < 0) {
+    printf("servo_bac_g: open /dev/pwm16 failed: %d\n", errno);
+  }
+
+  fd_servo_bac_d = open("/dev/pwm15", O_RDONLY);
+  if (fd_servo_bac_d < 0) {
+    printf("servo_bac_d: open /dev/pwm15 failed: %d\n", errno);
+  }
+
+  fd_servo_trappe = open("/dev/pwm8", O_RDONLY);
+  if (fd_servo_trappe < 0) {
+    printf("servo_trappe: open /dev/pwm8 failed: %d\n", errno);
+  }
+
+  info_servo.frequency = 100;
+  info_servo.duty = 0x1c28;
+  if (fd_servo_bac_g >= 0) {
+    ret = ioctl(fd_servo_bac_g, PWMIOC_SETCHARACTERISTICS,
+                (unsigned long)((uintptr_t)&info_servo));
+    if (ret < 0) {
+      printf("servo_bac_g: ioctl(PWMIOC_SETCHARACTERISTICS) failed:%d\n",errno);
+    }
+    ret = ioctl(fd_servo_bac_g, PWMIOC_START, 0);
+    if (ret < 0) {
+      printf("servo_bac_g: ioctl(PWMIOC_START) failed: %d\n", errno);
+    }
+  }
+
+  info_servo.frequency = 100;
+  info_servo.duty = 0x30a3;
+  if (fd_servo_bac_d >= 0) {
+    ret = ioctl(fd_servo_bac_d, PWMIOC_SETCHARACTERISTICS,
+                (unsigned long)((uintptr_t)&info_servo));
+    if (ret < 0) {
+      printf("servo_bac_d: ioctl(PWMIOC_SETCHARACTERISTICS) failed:%d\n",errno);
+    }
+    ret = ioctl(fd_servo_bac_d, PWMIOC_START, 0);
+    if (ret < 0) {
+      printf("servo_bac_d: ioctl(PWMIOC_START) failed: %d\n", errno);
+    }
+  }
+
+  info_servo.frequency = 100;
+  info_servo.duty = 0x3000;
+  if (fd_servo_trappe >= 0) {
+    ret = ioctl(fd_servo_trappe, PWMIOC_SETCHARACTERISTICS,
+                (unsigned long)((uintptr_t)&info_servo));
+    if (ret < 0) {
+      printf("servo_trappe:ioctl(PWMIOC_SETCHARACTERISTICS) failed:%d\n",errno);
+    }
+    ret = ioctl(fd_servo_trappe, PWMIOC_START, 0);
+    if (ret < 0) {
+      printf("servo_trappe: ioctl(PWMIOC_START) failed: %d\n", errno);
+    }
+  }
+}
+
+#define SERVO_BAC_MEDIAN_VAL 10650
+#define SERVO_BAC_MAX_DELTA   5000
+void servo_bac(int pos)
+{
+  struct pwm_info_s info_servo;
+  int ret;
+
+  if ((fd_servo_bac_g < 0) || (fd_servo_bac_d < 0)) {
+    return;
+  }
+
+  if ((pos < (-SERVO_BAC_MAX_DELTA)) || (pos > (SERVO_BAC_MAX_DELTA))) {
+    return;
+  }
+
+  info_servo.frequency = 100;
+  info_servo.duty = SERVO_BAC_MEDIAN_VAL - pos;
+  ret = ioctl(fd_servo_bac_g, PWMIOC_SETCHARACTERISTICS,
+              (unsigned long)((uintptr_t)&info_servo));
+  if (ret < 0) {
+    printf("servo_bac_g: ioctl(PWMIOC_SETCHARACTERISTICS) failed:%d\n",errno);
+    return;
+  }
+
+  info_servo.frequency = 100;
+  info_servo.duty = SERVO_BAC_MEDIAN_VAL + pos;
+  ret = ioctl(fd_servo_bac_d, PWMIOC_SETCHARACTERISTICS,
+              (unsigned long)((uintptr_t)&info_servo));
+  if (ret < 0) {
+    printf("servo_bac_d: ioctl(PWMIOC_SETCHARACTERISTICS) failed:%d\n",errno);
+    return;
+  }
+}
+
+void servo_trappe(int pos)
+{
+  struct pwm_info_s info_servo;
+  int ret;
+
+  if ((fd_servo_trappe < 0)) {
+    return;
+  }
+
+  info_servo.frequency = 100;
+  info_servo.duty = pos;
+  ret = ioctl(fd_servo_bac_g, PWMIOC_SETCHARACTERISTICS,
+              (unsigned long)((uintptr_t)&info_servo));
+  if (ret < 0) {
+    printf("servo_bac_g: ioctl(PWMIOC_SETCHARACTERISTICS) failed:%d\n",errno);
+    return;
+  }
+}
+
 void match_goldo(void)
 {
   int start_gpio_state = 0;
   int obstacle_gpio_state = 0;
+  int couleur_gpio_state = 0;
 
   pthread_t id_simul_obstacle;
   pthread_t id_detect_obstacle;
 
   int result;
   goldo_waypoint_s *my_wp;
+
+  init_servos();
 
   enable_simul_obstacle = 0;
   enable_detect_obstacle = 0;
@@ -1150,6 +1289,9 @@ void match_goldo(void)
   start_gpio_state = goldo_get_start_gpio_state();
   printf ("start_gpio_state = %d\n", start_gpio_state);
 
+  couleur_gpio_state = goldo_get_couleur_gpio_state();
+  printf ("couleur_gpio_state = %d\n", couleur_gpio_state);
+
   while (start_gpio_state==0) {
     start_gpio_state = goldo_get_start_gpio_state();
     usleep(20000);
@@ -1164,11 +1306,11 @@ void match_goldo(void)
   obstacle_flag = 0;
   simul_obstacle_flag = 0;
 
-#ifdef MATCH_VERT /* VERT */
-  my_wp = s_waypoints_green;
-#else /* ORANGE */
-  my_wp = s_waypoints_orange;
-#endif
+  if (couleur_gpio_state==0) { /* 0=vert */
+    my_wp = s_waypoints_green;
+  } else { /* 1=orange */
+    my_wp = s_waypoints_orange;
+  }
 
   goldo_odometry_set_position(my_wp->x*1e-3, my_wp->y*1e-3, 
                               my_wp->theta*M_PI/180);
@@ -1218,5 +1360,41 @@ void match_goldo(void)
   simul_obstacle_flag = 0;
 }
 
+void main_loop_test_servos(void)
+{
+  int command=0;
+  int servo_pos=0;
+  char buffer[32];
+
+  //init_servos();
+
+  while(1)
+  {
+    printf("(1) Cmd servo 'bac'\n(2) Cmd servo 'trappe'\n(3) Quit\n Enter command: \n");
+    command = 0;
+    readline(buffer,32,stdin,stdout);
+    sscanf(buffer,"%d",&command);
+
+    switch(command) {
+    case 1:
+      printf("Input pos (0,60000): ");
+      fflush(stdout);
+      readline(buffer,32,stdin,stdout);
+      sscanf(buffer,"%d",&servo_pos);
+      servo_bac(servo_pos);
+      break;
+    case 2:
+      printf("Input pos (0,60000): ");
+      fflush(stdout);
+      readline(buffer,32,stdin,stdout);
+      sscanf(buffer,"%d",&servo_pos);
+      servo_trappe(servo_pos);
+      break;         
+    case 3:
+    default:
+      break;
+    }
+  }
+}
 
 
