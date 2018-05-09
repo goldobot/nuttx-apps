@@ -44,6 +44,8 @@ void *simul_obstacle(void *arg);
 void *detect_obstacle(void *arg);
 void match_goldo(void);
 void servo_bac(int pos);
+void servo_bac_d(int pos);
+void servo_bac_g(int pos);
 void servo_trappe(int pos);
 
 extern int goldo_get_start_gpio_state(void);
@@ -98,6 +100,7 @@ static goldo_waypoint_s s_waypoints[] = {
 };
 #else
 
+#if 0
 static goldo_waypoint_s s_waypoints_green[] = {
   {WAYPOINT_X_Y_THETA,    550,   290,  45}, //  0
   {WAYPOINT_X_Y,          800,   640,   0}, //  1
@@ -131,6 +134,45 @@ static goldo_waypoint_s s_waypoints_orange[] = {
   {WAYPOINT_HOME_BACK,    100, -1350, 180}, // 12
   {WAYPOINT_INVALID,      100, -1350,   0}, // 13
 };
+#else
+static goldo_waypoint_s s_waypoints_green[] = {
+  {WAYPOINT_X_Y_THETA,    520,   260,  45}, //  0
+  {WAYPOINT_X_Y,          800,   640,   0}, //  1
+  {WAYPOINT_X_Y,         1400,   640,   0}, //  2
+  {WAYPOINT_X_Y,         1600,   250,   0}, //  3
+  {WAYPOINT_X_Y,         1800,   250,   0}, //  4
+  {WAYPOINT_HOME_FRONT,  1900,   250,   0}, //  5
+  {WAYPOINT_X_Y,         1600,   250,   0}, //  6
+
+  {WAYPOINT_X_Y,         1200,  1000,   0}, //  7
+  {WAYPOINT_X_Y,          600,   850,   0}, //  8
+  {WAYPOINT_X_Y,          300,   850,   0}, //  9
+
+  {WAYPOINT_X_Y,          550,  1150,   0}, // 10
+  {WAYPOINT_X_Y,          300,  1050,   0}, // 11
+  {WAYPOINT_HOME_BACK,    100,  1050, 180}, // 12
+  {WAYPOINT_INVALID,      100,  1050,   0}, // 13
+};
+
+static goldo_waypoint_s s_waypoints_orange[] = {
+  {WAYPOINT_X_Y_THETA,    520,  -260, -45}, //  0
+  {WAYPOINT_X_Y,          800,  -640,   0}, //  1
+  {WAYPOINT_X_Y,         1400,  -640,   0}, //  2
+  {WAYPOINT_X_Y,         1600,  -160,   0}, //  3
+  {WAYPOINT_X_Y,         1800,  -140,   0}, //  4
+  {WAYPOINT_HOME_FRONT,  1900,  -140,   0}, //  5
+  {WAYPOINT_X_Y,         1600,  -160,   0}, //  6
+
+  {WAYPOINT_X_Y,         1200, -1000,   0}, //  7
+  {WAYPOINT_X_Y,          600,  -850,   0}, //  8
+  {WAYPOINT_X_Y,          300,  -800,   0}, //  9
+
+  {WAYPOINT_X_Y,          550, -1320,   0}, // 10
+  {WAYPOINT_X_Y,          300, -1350,   0}, // 11
+  {WAYPOINT_HOME_BACK,    100, -1350, 180}, // 12
+  {WAYPOINT_INVALID,      100, -1350,   0}, // 13
+};
+#endif
 
 #ifdef MATCH_VERT /* VERT */
 static goldo_waypoint_s *s_waypoints = s_waypoints_green;
@@ -1251,6 +1293,44 @@ void servo_trappe(int pos)
 
   info_servo.frequency = 100;
   info_servo.duty = pos;
+  ret = ioctl(fd_servo_trappe, PWMIOC_SETCHARACTERISTICS,
+              (unsigned long)((uintptr_t)&info_servo));
+  if (ret < 0) {
+    printf("servo_trappe: ioctl(PWMIOC_SETCHARACTERISTICS) failed:%d\n",errno);
+    return;
+  }
+}
+
+void servo_bac_d(int pos)
+{
+  struct pwm_info_s info_servo;
+  int ret;
+
+  if ((fd_servo_bac_d < 0)) {
+    return;
+  }
+
+  info_servo.frequency = 100;
+  info_servo.duty = pos;
+  ret = ioctl(fd_servo_bac_d, PWMIOC_SETCHARACTERISTICS,
+              (unsigned long)((uintptr_t)&info_servo));
+  if (ret < 0) {
+    printf("servo_bac_d: ioctl(PWMIOC_SETCHARACTERISTICS) failed:%d\n",errno);
+    return;
+  }
+}
+
+void servo_bac_g(int pos)
+{
+  struct pwm_info_s info_servo;
+  int ret;
+
+  if ((fd_servo_bac_g < 0)) {
+    return;
+  }
+
+  info_servo.frequency = 100;
+  info_servo.duty = pos;
   ret = ioctl(fd_servo_bac_g, PWMIOC_SETCHARACTERISTICS,
               (unsigned long)((uintptr_t)&info_servo));
   if (ret < 0) {
@@ -1271,7 +1351,7 @@ void match_goldo(void)
   int result;
   goldo_waypoint_s *my_wp;
 
-  init_servos();
+  //init_servos();
 
   enable_simul_obstacle = 0;
   enable_detect_obstacle = 0;
@@ -1298,6 +1378,9 @@ void match_goldo(void)
   }
 
   /* GO * GO * GO!!!!! */
+
+  //servo_bac(-3000);
+  servo_bac_d(11000);
 
   goldo_asserv_enable();
 
@@ -1370,7 +1453,7 @@ void main_loop_test_servos(void)
 
   while(1)
   {
-    printf("(1) Cmd servo 'bac'\n(2) Cmd servo 'trappe'\n(3) Quit\n Enter command: \n");
+    printf("(1) Cmd servo 'bac'\n(2) Cmd servo 'trappe'\n(3) Cmd servo bac d\n(4) Cmd servo bac g\n(5) Quit\n Enter command: \n");
     command = 0;
     readline(buffer,32,stdin,stdout);
     sscanf(buffer,"%d",&command);
@@ -1389,12 +1472,28 @@ void main_loop_test_servos(void)
       readline(buffer,32,stdin,stdout);
       sscanf(buffer,"%d",&servo_pos);
       servo_trappe(servo_pos);
-      break;         
-    case 3:
-    default:
       break;
+    case 3:
+      printf("Input pos (0,60000): ");
+      fflush(stdout);
+      readline(buffer,32,stdin,stdout);
+      sscanf(buffer,"%d",&servo_pos);
+      servo_bac_d(servo_pos);
+      break;
+    case 4:
+      printf("Input pos (0,60000): ");
+      fflush(stdout);
+      readline(buffer,32,stdin,stdout);
+      sscanf(buffer,"%d",&servo_pos);
+      servo_bac_g(servo_pos);
+      break;
+    case 5:
+    default:
+      goto end;
     }
   }
+ end:
+  return;
 }
 
 

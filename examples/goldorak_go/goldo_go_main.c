@@ -216,6 +216,9 @@ static void parse_args(int argc, FAR char **argv)
  * Name: goldorak_go_main
  ****************************************************************************/
 extern void init_servos(void);
+extern void servo_bac(int servo_pos);
+extern void servo_bac_d(int pos);
+extern void servo_bac_g(int pos);
 //#define CONFIG_BUILD_KERNEL
 #ifdef CONFIG_BUILD_KERNEL
 int main(int argc, FAR char *argv[])
@@ -226,12 +229,15 @@ int goldorak_go_main(int argc, char *argv[])
  // int ret;
 
   init_servos();
+  //servo_bac(3000);
+  servo_bac_d(15000);
 
   goldo_asserv_hal_reset();
 
 #if 1 /* FIXME : DEBUG : hack Goldo pre-coupe 2018 */
   if (argc==1) {
     goldo_robot_init();
+    servo_bac_d(15000);
     match_goldo();
     goldo_robot_release();
     goldo_asserv_hal_set_motors_pwm(0,0);
