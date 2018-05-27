@@ -122,6 +122,10 @@ int nsh_session(FAR struct console_stdio_s *pstate)
   (void)nsh_loginscript(vtbl);
 #endif
 
+#if 1 /* FIXME : DEBUG : HACK GOLDO */
+  (void)nsh_parse(vtbl, "goldorak_go");
+#endif
+
   /* Then enter the command line parsing loop */
 
   for (;;)

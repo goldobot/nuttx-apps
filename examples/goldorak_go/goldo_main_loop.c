@@ -84,6 +84,9 @@ typedef struct goldo_waypoint_s
   float x;
   float y;
   float theta;
+  int enable_detect_obstacle;
+  int servo_bac_d;
+  int servo_trappe;
 } goldo_waypoint_s;
 
 #if 0 /* FIXME : TODO : remove : ancien code 2017 */
@@ -101,78 +104,396 @@ static goldo_waypoint_s s_waypoints[] = {
 #else
 
 #if 0
+/* Tests Electrolab */
 static goldo_waypoint_s s_waypoints_green[] = {
-  {WAYPOINT_X_Y_THETA,    550,   290,  45}, //  0
-  {WAYPOINT_X_Y,          800,   640,   0}, //  1
-  {WAYPOINT_X_Y,         1400,   640,   0}, //  2
-  {WAYPOINT_X_Y,         1600,   250,   0}, //  3
-  {WAYPOINT_X_Y,         1800,   250,   0}, //  4
-  {WAYPOINT_HOME_FRONT,  1900,   250,   0}, //  5
-  {WAYPOINT_X_Y,         1600,   250,   0}, //  6
-  {WAYPOINT_X_Y,         1200,  1000,   0}, //  7
-  {WAYPOINT_X_Y,         1200,  2000,   0}, //  8
-  {WAYPOINT_X_Y,         1600,  2600,   0}, //  9
-  {WAYPOINT_X_Y,          550,  1150,   0}, // 10
-  {WAYPOINT_X_Y,          300,  1050,   0}, // 11
-  {WAYPOINT_HOME_BACK,    100,  1050, 180}, // 12
-  {WAYPOINT_INVALID,      100,  1050,   0}, // 13
+  {WAYPOINT_X_Y_THETA,    550,   290,  45, 1}, //  0
+  {WAYPOINT_X_Y,          800,   640,   0, 1}, //  1
+  {WAYPOINT_X_Y,         1400,   640,   0, 1}, //  2
+  {WAYPOINT_X_Y,         1600,   250,   0, 1}, //  3
+  {WAYPOINT_X_Y,         1800,   250,   0, 1}, //  4
+  {WAYPOINT_HOME_FRONT,  1900,   250,   0, 1}, //  5
+  {WAYPOINT_X_Y,         1600,   250,   0, 1}, //  6
+  {WAYPOINT_X_Y,         1200,  1000,   0, 1}, //  7
+  {WAYPOINT_X_Y,         1200,  2000,   0, 1}, //  8
+  {WAYPOINT_X_Y,         1600,  2600,   0, 1}, //  9
+  {WAYPOINT_X_Y,          550,  1150,   0, 1}, // 10
+  {WAYPOINT_X_Y,          300,  1050,   0, 1}, // 11
+  {WAYPOINT_HOME_BACK,    100,  1050, 180, 1}, // 12
+  {WAYPOINT_INVALID,      100,  1050,   0, 1}, // 13
 };
 
 static goldo_waypoint_s s_waypoints_orange[] = {
-  {WAYPOINT_X_Y_THETA,    550,  -290, -45}, //  0
-  {WAYPOINT_X_Y,          800,  -640,   0}, //  1
-  {WAYPOINT_X_Y,         1400,  -640,   0}, //  2
-  {WAYPOINT_X_Y,         1600,  -160,   0}, //  3
-  {WAYPOINT_X_Y,         1800,  -140,   0}, //  4
-  {WAYPOINT_HOME_FRONT,  1900,  -140,   0}, //  5
-  {WAYPOINT_X_Y,         1600,  -160,   0}, //  6
-  {WAYPOINT_X_Y,         1200, -1000,   0}, //  7
-  {WAYPOINT_X_Y,         1200, -2000,   0}, //  8
-  {WAYPOINT_X_Y,         1900, -2400,   0}, //  9
-  {WAYPOINT_X_Y,          550, -1320,   0}, // 10
-  {WAYPOINT_X_Y,          300, -1350,   0}, // 11
-  {WAYPOINT_HOME_BACK,    100, -1350, 180}, // 12
-  {WAYPOINT_INVALID,      100, -1350,   0}, // 13
-};
-#else
-static goldo_waypoint_s s_waypoints_green[] = {
-  {WAYPOINT_X_Y_THETA,    520,   260,  45}, //  0
-  {WAYPOINT_X_Y,          800,   640,   0}, //  1
-  {WAYPOINT_X_Y,         1400,   640,   0}, //  2
-  {WAYPOINT_X_Y,         1600,   250,   0}, //  3
-  {WAYPOINT_X_Y,         1800,   250,   0}, //  4
-  {WAYPOINT_HOME_FRONT,  1900,   250,   0}, //  5
-  {WAYPOINT_X_Y,         1600,   250,   0}, //  6
-
-  {WAYPOINT_X_Y,         1200,  1000,   0}, //  7
-  {WAYPOINT_X_Y,          600,   850,   0}, //  8
-  {WAYPOINT_X_Y,          300,   850,   0}, //  9
-
-  {WAYPOINT_X_Y,          550,  1150,   0}, // 10
-  {WAYPOINT_X_Y,          300,  1050,   0}, // 11
-  {WAYPOINT_HOME_BACK,    100,  1050, 180}, // 12
-  {WAYPOINT_INVALID,      100,  1050,   0}, // 13
-};
-
-static goldo_waypoint_s s_waypoints_orange[] = {
-  {WAYPOINT_X_Y_THETA,    520,  -260, -45}, //  0
-  {WAYPOINT_X_Y,          800,  -640,   0}, //  1
-  {WAYPOINT_X_Y,         1400,  -640,   0}, //  2
-  {WAYPOINT_X_Y,         1600,  -160,   0}, //  3
-  {WAYPOINT_X_Y,         1800,  -140,   0}, //  4
-  {WAYPOINT_HOME_FRONT,  1900,  -140,   0}, //  5
-  {WAYPOINT_X_Y,         1600,  -160,   0}, //  6
-
-  {WAYPOINT_X_Y,         1200, -1000,   0}, //  7
-  {WAYPOINT_X_Y,          600,  -850,   0}, //  8
-  {WAYPOINT_X_Y,          300,  -800,   0}, //  9
-
-  {WAYPOINT_X_Y,          550, -1320,   0}, // 10
-  {WAYPOINT_X_Y,          300, -1350,   0}, // 11
-  {WAYPOINT_HOME_BACK,    100, -1350, 180}, // 12
-  {WAYPOINT_INVALID,      100, -1350,   0}, // 13
+  {WAYPOINT_X_Y_THETA,    550,  -290, -45, 1}, //  0
+  {WAYPOINT_X_Y,          800,  -640,   0, 1}, //  1
+  {WAYPOINT_X_Y,         1400,  -640,   0, 1}, //  2
+  {WAYPOINT_X_Y,         1600,  -160,   0, 1}, //  3
+  {WAYPOINT_X_Y,         1800,  -140,   0, 1}, //  4
+  {WAYPOINT_HOME_FRONT,  1900,  -140,   0, 1}, //  5
+  {WAYPOINT_X_Y,         1600,  -160,   0, 1}, //  6
+  {WAYPOINT_X_Y,         1200, -1000,   0, 1}, //  7
+  {WAYPOINT_X_Y,         1200, -2000,   0, 1}, //  8
+  {WAYPOINT_X_Y,         1900, -2400,   0, 1}, //  9
+  {WAYPOINT_X_Y,          550, -1320,   0, 1}, // 10
+  {WAYPOINT_X_Y,          300, -1350,   0, 1}, // 11
+  {WAYPOINT_HOME_BACK,    100, -1350, 180, 1}, // 12
+  {WAYPOINT_INVALID,      100, -1350,   0, 1}, // 13
 };
 #endif
+
+#if 0
+/* Homologation */
+static goldo_waypoint_s s_waypoints_green[] = {
+  {WAYPOINT_X_Y_THETA,    520,   260,  45, 1}, //  0
+  {WAYPOINT_X_Y,          800,   640,   0, 1}, //  1
+  {WAYPOINT_X_Y,         1400,   640,   0, 1}, //  2
+  {WAYPOINT_X_Y,         1600,   250,   0, 1}, //  3
+  {WAYPOINT_X_Y,         1800,   250,   0, 1}, //  4
+  {WAYPOINT_HOME_FRONT,  1900,   250,   0, 1}, //  5
+  {WAYPOINT_X_Y,         1600,   250,   0, 1}, //  6
+
+  {WAYPOINT_X_Y,         1200,  1000,   0, 1}, //  7
+  {WAYPOINT_X_Y,          600,   850,   0, 1}, //  8
+  {WAYPOINT_X_Y,          300,   850,   0, 1}, //  9
+
+  {WAYPOINT_X_Y,          550,  1150,   0, 1}, // 10
+  {WAYPOINT_X_Y,          300,  1050,   0, 1}, // 11
+  {WAYPOINT_HOME_BACK,    100,  1050, 180, 1}, // 12
+  {WAYPOINT_INVALID,      100,  1050,   0, 1}, // 13
+};
+
+static goldo_waypoint_s s_waypoints_orange[] = {
+  {WAYPOINT_X_Y_THETA,    520,  -260, -45, 1}, //  0
+  {WAYPOINT_X_Y,          800,  -640,   0, 1}, //  1
+  {WAYPOINT_X_Y,         1400,  -640,   0, 1}, //  2
+  {WAYPOINT_X_Y,         1600,  -160,   0, 1}, //  3
+  {WAYPOINT_X_Y,         1800,  -140,   0, 1}, //  4
+  {WAYPOINT_HOME_FRONT,  1900,  -140,   0, 1}, //  5
+  {WAYPOINT_X_Y,         1600,  -160,   0, 1}, //  6
+
+  {WAYPOINT_X_Y,         1200, -1000,   0, 1}, //  7
+  {WAYPOINT_X_Y,          600,  -850,   0, 1}, //  8
+  {WAYPOINT_X_Y,          300,  -800,   0, 1}, //  9
+
+  {WAYPOINT_X_Y,          550, -1320,   0, 1}, // 10
+  {WAYPOINT_X_Y,          300, -1350,   0, 1}, // 11
+  {WAYPOINT_HOME_BACK,    100, -1350, 180, 1}, // 12
+  {WAYPOINT_INVALID,      100, -1350,   0, 1}, // 13
+};
+#endif
+
+#if 0
+/* 1er match */
+static goldo_waypoint_s s_waypoints_green[] = {
+  {WAYPOINT_X_Y_THETA,    520,   200,  45, 1}, //  0
+  {WAYPOINT_X_Y,          800,   640,   0, 1}, //  1
+  {WAYPOINT_X_Y,         1400,   640,   0, 1}, //  2
+  {WAYPOINT_X_Y,         1600,   250,   0, 1}, //  3
+  {WAYPOINT_X_Y,         1800,   250,   0, 1}, //  4
+  {WAYPOINT_HOME_FRONT,  1900,   250,   0, 1}, //  5
+  {WAYPOINT_X_Y,         1600,   250,   0, 1}, //  6
+
+  {WAYPOINT_X_Y,          550,  1130,   0, 1}, //  7
+  {WAYPOINT_X_Y,          300,  1130,   0, 1}, //  8
+  {WAYPOINT_HOME_BACK,    100,  1130, 180, 1}, //  9
+
+  {WAYPOINT_X_Y,         1200,  1000,   0, 1}, // 10
+  {WAYPOINT_X_Y,          600,   850,   0, 1}, // 11
+  {WAYPOINT_X_Y,          300,   850,   0, 1}, // 12
+  {WAYPOINT_INVALID,      300,   850,   0, 1}, // 13
+};
+
+static goldo_waypoint_s s_waypoints_orange[] = {
+  {WAYPOINT_X_Y_THETA,    520,  -200, -45, 1}, //  0
+  {WAYPOINT_X_Y,          800,  -640,   0, 1}, //  1
+  {WAYPOINT_X_Y,         1400,  -640,   0, 1}, //  2
+  {WAYPOINT_X_Y,         1600,  -160,   0, 1}, //  3
+  {WAYPOINT_X_Y,         1800,  -140,   0, 1}, //  4
+  {WAYPOINT_HOME_FRONT,  1900,  -140,   0, 1}, //  5
+  {WAYPOINT_X_Y,         1600,  -160,   0, 1}, //  6
+
+  {WAYPOINT_X_Y,          550, -1130,   0, 1}, //  7
+  {WAYPOINT_X_Y,          300, -1130,   0, 1}, //  8
+  {WAYPOINT_HOME_BACK,    100, -1130, 180, 1}, //  9
+
+  {WAYPOINT_X_Y,         1200, -1000,   0, 1}, // 10
+  {WAYPOINT_X_Y,          600,  -850,   0, 1}, // 11
+  {WAYPOINT_X_Y,          300,  -850,   0, 1}, // 12
+  {WAYPOINT_INVALID,      300,  -850,   0, 1}, // 13
+};
+#endif
+
+#if 0
+/* EXP : 15 55 71 */
+static goldo_waypoint_s s_waypoints_green[] = {
+  {WAYPOINT_X_Y_THETA,    550,   150,   0, 0}, // Distrib 1
+  {WAYPOINT_X_Y,          710,   150,   0, 0}, // 
+
+  {WAYPOINT_X_Y,          800,   640,   0, 0}, // Abeille
+  {WAYPOINT_X_Y,         1400,   640,   0, 0}, // 
+  {WAYPOINT_X_Y,         1600,   250,   0, 0}, // 
+  {WAYPOINT_X_Y,         1800,   250,   0, 0}, // 
+  {WAYPOINT_HOME_FRONT,  1900,   250,   0, 0}, // 
+  {WAYPOINT_X_Y,         1600,   250,   0, 0}, // 
+
+  {WAYPOINT_X_Y,          550,  1200,   0, 1}, // Panneau
+  {WAYPOINT_X_Y,          300,  1100,   0, 0}, // 
+  {WAYPOINT_HOME_BACK,    100,  1100, 180, 0}, // 
+
+  {WAYPOINT_X_Y,          800,  1000,   0, 1}, // Cubes
+  {WAYPOINT_X_Y,          600,   850,   0, 0}, // 
+  {WAYPOINT_X_Y,          300,   850,   0, 0}, // 
+
+  {WAYPOINT_INVALID,      300,   850,   0, 0}, // Fin
+};
+
+static goldo_waypoint_s s_waypoints_orange[] = {
+  {WAYPOINT_X_Y_THETA,    550,  -150,   0, 0}, // Distrib 1
+  {WAYPOINT_X_Y,          710,  -150,   0, 0}, // 
+
+  {WAYPOINT_X_Y,          800,  -640,   0, 0}, // Abeille
+  {WAYPOINT_X_Y,         1400,  -640,   0, 0}, // 
+  {WAYPOINT_X_Y,         1600,  -160,   0, 0}, // 
+  {WAYPOINT_X_Y,         1800,  -140,   0, 0}, // 
+  {WAYPOINT_HOME_FRONT,  1900,  -140,   0, 0}, // 
+  {WAYPOINT_X_Y,         1600,  -160,   0, 0}, // 
+
+  {WAYPOINT_X_Y,          550, -1200,   0, 1}, // Panneau
+  {WAYPOINT_X_Y,          300, -1100,   0, 0}, // 
+  {WAYPOINT_HOME_BACK,    100, -1100, 180, 0}, // 
+
+  {WAYPOINT_X_Y,          800, -1000,   0, 1}, // Cubes
+  {WAYPOINT_X_Y,          600,  -850,   0, 0}, // 
+  {WAYPOINT_X_Y,          300,  -850,   0, 0}, // 
+
+  {WAYPOINT_INVALID,      300,  -850,   0, 0}, // Fin
+};
+#endif
+
+#if 0
+/* 2eme match */
+static goldo_waypoint_s s_waypoints_green[] = {
+  {WAYPOINT_X_Y_THETA,    550,   150,   0, 0}, // Distrib 1
+  {WAYPOINT_X_Y,          710,   150,   0, 0}, // 
+
+  {WAYPOINT_X_Y,          800,   640,   0, 0}, // Abeille
+  {WAYPOINT_X_Y,         1400,   640,   0, 0}, // 
+  {WAYPOINT_X_Y,         1600,   250,   0, 0}, // 
+  {WAYPOINT_X_Y,         1800,   250,   0, 0}, // 
+  {WAYPOINT_HOME_FRONT,  1900,   250,   0, 0}, // 
+  {WAYPOINT_X_Y,         1600,   250,   0, 0}, // 
+
+  {WAYPOINT_X_Y,          550,  1200,   0, 1}, // Panneau
+  {WAYPOINT_X_Y,          300,  1100,   0, 0}, // 
+  {WAYPOINT_HOME_BACK,    100,  1100, 180, 0}, // 
+
+  {WAYPOINT_X_Y,          800,  1000,   0, 1}, // Cubes
+  {WAYPOINT_X_Y,          600,   850,   0, 0}, // 
+  {WAYPOINT_X_Y,          200,   850,   0, 0}, // 
+
+  {WAYPOINT_INVALID,      300,   850,   0, 0}, // Fin
+};
+
+static goldo_waypoint_s s_waypoints_orange[] = {
+  {WAYPOINT_X_Y_THETA,    550,  -150,   0, 0}, // Distrib 1
+  {WAYPOINT_X_Y,          710,  -150,   0, 0}, // 
+
+  {WAYPOINT_X_Y,          800,  -640,   0, 0}, // Abeille
+  {WAYPOINT_X_Y,         1400,  -640,   0, 0}, // 
+  {WAYPOINT_X_Y,         1600,  -160,   0, 0}, // 
+  {WAYPOINT_X_Y,         1800,  -140,   0, 0}, // 
+  {WAYPOINT_HOME_FRONT,  1900,  -140,   0, 0}, // 
+  {WAYPOINT_X_Y,         1600,  -160,   0, 0}, // 
+
+  {WAYPOINT_X_Y,          550, -1200,   0, 1}, // Panneau
+  {WAYPOINT_X_Y,          300, -1100,   0, 0}, // 
+  {WAYPOINT_HOME_BACK,    100, -1100, 180, 0}, // 
+
+  {WAYPOINT_X_Y,          800, -1000,   0, 1}, // Cubes
+  {WAYPOINT_X_Y,          600,  -850,   0, 0}, // 
+  {WAYPOINT_X_Y,          200,  -850,   0, 0}, // 
+
+  {WAYPOINT_INVALID,      300,  -850,   0, 0}, // Fin
+};
+#endif
+
+#if 0
+/* 3eme match */
+static goldo_waypoint_s s_waypoints_green[] = {
+  {WAYPOINT_X_Y_THETA,    550,   140,   0, 0, 11000, 9000}, // Distrib 1
+  {WAYPOINT_X_Y,          720,   140,   0, 0, 11000, 9000}, // 
+
+  {WAYPOINT_X_Y,          800,   640,   0, 0, 11000, 9000}, // Abeille
+  {WAYPOINT_X_Y,         1400,   640,   0, 0, 11000, 9000}, // 
+  {WAYPOINT_X_Y,         1600,   250,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,         1800,   250,   0, 0, 12500, 8500}, // 
+  {WAYPOINT_HOME_FRONT,  1900,   250,   0, 0, 12500, 8500}, // 
+  {WAYPOINT_X_Y,         1600,   250,   0, 0, 12500, 8500}, // 
+
+  {WAYPOINT_X_Y,          550,  1200,   0, 1, 12500, 9000}, // Panneau
+  {WAYPOINT_X_Y,          300,  1100,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_HOME_BACK,    100,  1100, 180, 0, 12500, 9000}, // 
+
+  {WAYPOINT_X_Y,          800,  1000,   0, 1, 12500, 9000}, // Cubes
+  {WAYPOINT_X_Y,          600,   850,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,          200,   850,   0, 0, 12500, 9000}, // 
+
+  {WAYPOINT_X_Y,          600,   850,   0, 0, 12500, 9000}, // Depose
+  {WAYPOINT_X_Y,          600,   300,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,          140,   200, 180, 0, 12500, 9000}, // 
+
+  {WAYPOINT_INVALID,      140,   200,   0, 0, 12500, 6000}, // Fin
+};
+
+static goldo_waypoint_s s_waypoints_orange[] = {
+  {WAYPOINT_X_Y_THETA,    550,  -140,   0, 0, 11000, 9000}, // Distrib 1
+  {WAYPOINT_X_Y,          720,  -140,   0, 0, 11000, 9000}, // 
+
+  {WAYPOINT_X_Y,          800,  -640,   0, 0, 11000, 9000}, // Abeille
+  {WAYPOINT_X_Y,         1400,  -640,   0, 0, 11000, 9000}, // 
+  {WAYPOINT_X_Y,         1600,  -160,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,         1800,  -140,   0, 0, 12500, 8500}, // 
+  {WAYPOINT_HOME_FRONT,  1900,  -140,   0, 0, 12500, 8500}, // 
+  {WAYPOINT_X_Y,         1600,  -160,   0, 0, 12500, 8500}, // 
+
+  {WAYPOINT_X_Y,          550, -1200,   0, 1, 12500, 9000}, // Panneau
+  {WAYPOINT_X_Y,          300, -1100,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_HOME_BACK,    100, -1100, 180, 0, 12500, 9000}, // 
+
+  {WAYPOINT_X_Y,          800, -1000,   0, 1, 12500, 9000}, // Cubes
+  {WAYPOINT_X_Y,          600,  -850,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,          200,  -850,   0, 0, 12500, 9000}, // 
+
+  {WAYPOINT_X_Y,          600,  -850,   0, 0, 12500, 9000}, // Depose
+  {WAYPOINT_X_Y,          600,  -300,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,          140,  -200, 180, 0, 12500, 9000}, // 
+
+  {WAYPOINT_INVALID,      140,  -200,   0, 0, 12500, 6000}, // Fin
+};
+#endif
+
+#if 0
+/* 4eme match */
+static goldo_waypoint_s s_waypoints_green[] = {
+  {WAYPOINT_X_Y_THETA,    550,   140,   0, 0, 11000, 9000}, // Distrib 1
+  {WAYPOINT_X_Y,          720,   140,   0, 0, 11000, 9000}, // 
+
+  {WAYPOINT_X_Y,          800,   640,   0, 0, 11000, 9000}, // Abeille
+  {WAYPOINT_X_Y,         1400,   640,   0, 0, 11000, 9000}, // 
+  {WAYPOINT_X_Y,         1600,   250,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,         1800,   250,   0, 0, 12500, 8500}, // 
+  {WAYPOINT_HOME_FRONT,  1900,   250,   0, 0, 12500, 8500}, // 
+  {WAYPOINT_X_Y,         1600,   350,   0, 0, 12500, 8500}, // 
+
+  {WAYPOINT_X_Y,          550,  1200,   0, 1, 12500, 9000}, // Panneau
+  {WAYPOINT_X_Y_THETA,    400,  1100, 180, 0, 12500, 9000}, // 
+  {WAYPOINT_HOME_BACK,    100,  1100, 180, 0, 12500, 9000}, // 
+
+  {WAYPOINT_X_Y,          800,  1000,   0, 1, 12500, 9000}, // Cubes
+  {WAYPOINT_X_Y,          600,   850,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,          200,   850,   0, 0, 12500, 9000}, // 
+
+  {WAYPOINT_X_Y,          600,   850,   0, 0, 12500, 9000}, // Depose
+  {WAYPOINT_X_Y,          600,   300,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,          600,   200,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,          200,   200, 180, 0, 12500, 9000}, // 
+  {WAYPOINT_HOME_BACK,    100,   200, 180, 0, 12500, 7000}, // 
+  {WAYPOINT_HOME_BACK,    100,   200, 180, 0, 12500, 6000}, // 
+
+  {WAYPOINT_INVALID,      140,   200,   0, 0, 12500, 6000}, // Fin
+};
+
+static goldo_waypoint_s s_waypoints_orange[] = {
+  {WAYPOINT_X_Y_THETA,    550,  -140,   0, 0, 11000, 9000}, // Distrib 1
+  {WAYPOINT_X_Y,          720,  -140,   0, 0, 11000, 9000}, // 
+
+  {WAYPOINT_X_Y,          800,  -640,   0, 0, 11000, 9000}, // Abeille
+  {WAYPOINT_X_Y,         1400,  -640,   0, 0, 11000, 9000}, // 
+  {WAYPOINT_X_Y,         1600,  -160,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,         1800,  -140,   0, 0, 12500, 8500}, // 
+  {WAYPOINT_HOME_FRONT,  1900,  -140,   0, 0, 12500, 8500}, // 
+  {WAYPOINT_X_Y,         1600,  -260,   0, 0, 12500, 8500}, // 
+
+  {WAYPOINT_X_Y,          550, -1200,   0, 1, 12500, 9000}, // Panneau
+  {WAYPOINT_X_Y_THETA,    400, -1100, 180, 0, 12500, 9000}, // 
+  {WAYPOINT_HOME_BACK,    100, -1100, 180, 0, 12500, 9000}, // 
+
+  {WAYPOINT_X_Y,          800, -1000,   0, 1, 12500, 9000}, // Cubes
+  {WAYPOINT_X_Y,          600,  -850,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,          200,  -850,   0, 0, 12500, 9000}, // 
+
+  {WAYPOINT_X_Y,          600,  -850,   0, 0, 12500, 9000}, // Depose
+  {WAYPOINT_X_Y,          600,  -300,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,          600,  -200,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,          200,  -200, 180, 0, 12500, 9000}, // 
+  {WAYPOINT_HOME_BACK,    100,  -200, 180, 0, 12500, 7000}, // 
+  {WAYPOINT_HOME_BACK,    100,  -200, 180, 0, 12500, 6000}, // 
+
+  {WAYPOINT_INVALID,      140,  -200,   0, 0, 12500, 6000}, // Fin
+};
+#endif
+
+#if 1
+/* 5eme match */
+static goldo_waypoint_s s_waypoints_green[] = {
+  {WAYPOINT_X_Y_THETA,    550,   140,   0, 0, 11000, 9000}, // Distrib 1
+  {WAYPOINT_X_Y,          720,   140,   0, 0, 11000, 9000}, // 
+
+  {WAYPOINT_X_Y,          800,   640,   0, 0, 11000, 9000}, // Abeille
+  {WAYPOINT_X_Y,         1400,   640,   0, 0, 11000, 9000}, // 
+  {WAYPOINT_X_Y,         1600,   250,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,         1800,   250,   0, 0, 12500, 8500}, // 
+  {WAYPOINT_HOME_FRONT,  1900,   250,   0, 0, 12500, 8500}, // 
+  {WAYPOINT_X_Y,         1600,   350,   0, 0, 12500, 8500}, // 
+
+  {WAYPOINT_X_Y,          550,  1200,   0, 1, 12500, 9000}, // Panneau
+  {WAYPOINT_X_Y_THETA,    400,  1100, 180, 0, 12500, 9000}, // 
+  {WAYPOINT_HOME_BACK,    100,  1100, 180, 0, 12500, 9000}, // 
+
+  {WAYPOINT_X_Y,          800,  1000,   0, 1, 12500, 9000}, // Cubes
+  {WAYPOINT_X_Y,          600,   850,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,          200,   850,   0, 0, 12500, 9000}, // 
+
+  {WAYPOINT_X_Y,          600,   850,   0, 0, 12500, 9000}, // Depose
+  {WAYPOINT_X_Y,          600,   300,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,          600,   200,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,          200,   200, 180, 0, 15000, 9000}, // 
+  {WAYPOINT_HOME_BACK,    100,   200, 180, 0, 15000, 7000}, // 
+  {WAYPOINT_HOME_BACK,    100,   200, 180, 0, 15000, 6000}, // 
+
+  {WAYPOINT_INVALID,      140,   200,   0, 0, 15000, 6000}, // Fin
+};
+
+static goldo_waypoint_s s_waypoints_orange[] = {
+  {WAYPOINT_X_Y_THETA,    550,  -140,   0, 0, 11000, 9000}, // Distrib 1
+  {WAYPOINT_X_Y,          720,  -140,   0, 0, 11000, 9000}, // 
+
+  {WAYPOINT_X_Y,          800,  -640,   0, 0, 11000, 9000}, // Abeille
+  {WAYPOINT_X_Y,         1400,  -640,   0, 0, 11000, 9000}, // 
+  {WAYPOINT_X_Y,         1600,  -160,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,         1800,  -140,   0, 0, 12500, 8500}, // 
+  {WAYPOINT_HOME_FRONT,  1900,  -140,   0, 0, 12500, 8500}, // 
+  {WAYPOINT_X_Y,         1600,  -260,   0, 0, 12500, 8500}, // 
+
+  {WAYPOINT_X_Y,          550, -1200,   0, 1, 12500, 9000}, // Panneau
+  {WAYPOINT_X_Y_THETA,    400, -1100, 180, 0, 12500, 9000}, // 
+  {WAYPOINT_HOME_BACK,    100, -1100, 180, 0, 12500, 9000}, // 
+
+  {WAYPOINT_X_Y,          800, -1000,   0, 1, 12500, 9000}, // Cubes
+  {WAYPOINT_X_Y,          600,  -850,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,          200,  -850,   0, 0, 12500, 9000}, // 
+
+  {WAYPOINT_X_Y,          600,  -850,   0, 0, 12500, 9000}, // Depose
+  {WAYPOINT_X_Y,          600,  -300,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,          600,  -200,   0, 0, 12500, 9000}, // 
+  {WAYPOINT_X_Y,          200,  -200, 180, 0, 15000, 9000}, // 
+  {WAYPOINT_HOME_BACK,    100,  -200, 180, 0, 15000, 7000}, // 
+  {WAYPOINT_HOME_BACK,    100,  -200, 180, 0, 15000, 6000}, // 
+
+  {WAYPOINT_INVALID,      140,  -200,   0, 0, 15000, 6000}, // Fin
+};
+#endif
+
+
 
 #ifdef MATCH_VERT /* VERT */
 static goldo_waypoint_s *s_waypoints = s_waypoints_green;
@@ -1380,14 +1701,20 @@ void match_goldo(void)
   /* GO * GO * GO!!!!! */
 
   //servo_bac(-3000);
-  servo_bac_d(11000);
+  //servo_bac_d(11000);
+  servo_bac_d(12500);
+  //servo_trappe(8500);
+  servo_trappe(8700);
 
   goldo_asserv_enable();
 
   enable_simul_obstacle = 1;
-  enable_detect_obstacle = 1;
+  enable_detect_obstacle = 0;
   obstacle_flag = 0;
   simul_obstacle_flag = 0;
+
+  couleur_gpio_state = goldo_get_couleur_gpio_state();
+  printf ("couleur_gpio_state = %d\n", couleur_gpio_state);
 
   if (couleur_gpio_state==0) { /* 0=vert */
     my_wp = s_waypoints_green;
@@ -1400,6 +1727,10 @@ void match_goldo(void)
   my_wp++;
 
   while (my_wp->type!=WAYPOINT_INVALID) {
+    goldo_print_pos();
+    enable_detect_obstacle = my_wp->enable_detect_obstacle;
+    servo_bac_d(my_wp->servo_bac_d);
+    servo_trappe(my_wp->servo_trappe);
     switch (my_wp->type) {
     case WAYPOINT_INVALID:
       goto end;
@@ -1437,6 +1768,7 @@ void match_goldo(void)
   }
 
  end:
+  servo_trappe(6000);
   enable_simul_obstacle = 0;
   enable_detect_obstacle = 0;
   obstacle_flag = 0;
